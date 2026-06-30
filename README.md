@@ -2,6 +2,12 @@
 
 Node/Express backend for the cultivation game. It owns the Supabase service key and exposes safe API endpoints for the frontend.
 
+Current backend coverage:
+
+- Supabase connection health checks
+- Demo save creation/loading/reset
+- Demo actions for cultivation, alchemy, planting, forging, and the first mouse cave battle stub
+
 ## Setup
 
 ```bash
@@ -27,3 +33,17 @@ Do not commit `.env`.
 
 - `GET /health` checks whether required Supabase config is present.
 - `GET /health/db` checks whether the Supabase REST endpoint accepts the configured key.
+
+## Demo save table
+
+Run this SQL in the Supabase SQL Editor before using the demo save API:
+
+```text
+supabase/migrations/202606300001_create_demo_saves.sql
+```
+
+Demo endpoints:
+
+- `GET /demo/save`
+- `POST /demo/action` with `{ "action": "cultivate" }`
+- `POST /demo/reset`

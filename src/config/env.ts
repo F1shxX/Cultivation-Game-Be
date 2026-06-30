@@ -6,6 +6,7 @@ export type AppConfig = {
   supabaseUrl?: string;
   supabaseServiceRoleKey?: string;
   databaseHealthTable?: string;
+  demoPlayerId: string;
 };
 
 function parsePort(value: string | undefined): number {
@@ -22,6 +23,7 @@ export const config: AppConfig = {
   supabaseUrl: process.env.SUPABASE_URL,
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
   databaseHealthTable: process.env.DATABASE_HEALTH_TABLE,
+  demoPlayerId: process.env.DEMO_PLAYER_ID ?? "demo-player",
 };
 
 export function getSupabaseProjectRef(): string | null {
