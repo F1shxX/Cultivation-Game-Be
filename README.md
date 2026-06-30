@@ -1,1 +1,29 @@
-# Cultivation-Mini-Game-Be
+# Cultivation Game Backend
+
+Node/Express backend for the cultivation game. It owns the Supabase service key and exposes safe API endpoints for the frontend.
+
+## Setup
+
+```bash
+npm install
+copy .env.example .env
+npm run dev
+```
+
+Fill `.env` with the real Supabase service role key before checking database health.
+
+## Environment
+
+```env
+PORT=3001
+CLIENT_ORIGIN=http://localhost:5173
+SUPABASE_URL=https://zpplrhsocohdjyodnmqi.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=
+```
+
+Do not commit `.env`.
+
+## Health checks
+
+- `GET /health` checks whether required Supabase config is present.
+- `GET /health/db` checks whether the Supabase REST endpoint accepts the configured key.
