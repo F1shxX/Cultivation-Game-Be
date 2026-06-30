@@ -1,5 +1,16 @@
 export type DemoLocation = "home" | "event" | "battle";
 
+export type DemoScene =
+  | "hall"
+  | "plaza"
+  | "dormitory"
+  | "sister_room"
+  | "meditation_room"
+  | "forge"
+  | "alchemy_room"
+  | "spirit_garden"
+  | "teleport_array";
+
 export type DemoCultivationState = {
   level: "炼气";
   realmProgress: number;
@@ -32,6 +43,7 @@ export type DemoSaveState = {
   year: number;
   month: number;
   location: DemoLocation;
+  scene: DemoScene;
   cultivation: DemoCultivationState;
   resources: DemoResources;
   relationships: DemoRelationship[];
@@ -46,10 +58,23 @@ export type DemoSaveRecord = {
   updated_at?: string;
 };
 
+export const sceneNames: Record<DemoScene, string> = {
+  hall: "大厅",
+  plaza: "广场",
+  dormitory: "宿舍",
+  sister_room: "师姐居室",
+  meditation_room: "闭关室",
+  forge: "炼器坊",
+  alchemy_room: "炼丹房",
+  spirit_garden: "灵植园",
+  teleport_array: "传送阵",
+};
+
 export const defaultDemoState: DemoSaveState = {
   year: 1,
   month: 1,
   location: "home",
+  scene: "hall",
   cultivation: {
     level: "炼气",
     realmProgress: 12,
@@ -72,6 +97,10 @@ export const defaultDemoState: DemoSaveState = {
     openingSeen: false,
     firstMudEye: false,
     mouseCaveUnlocked: false,
+    plazaSwept: false,
+    dormRested: false,
+    sisterTea: false,
+    teleportChecked: false,
   },
   eventLog: [
     {
@@ -120,19 +149,73 @@ function addBond(state: DemoSaveState, characterId: DemoRelationship["characterI
   };
 }
 
+export function normalizeDemoState(state: Partial<DemoSaveState> | DemoSaveState): DemoSaveState {
+  return {
+    ...defaultDemoState,
+    ...state,
+    scene: state.scene ?? "hall",
+    cultivation: {
+      ...defaultDemoState.cultivation,
+      ...state.cultivation,
+    },
+    resources: {
+      ...defaultDemoState.resources,
+      ...state.resources,
+    },
+    flags: {
+      ...defaultDemoState.flags,
+      ...state.flags,
+    },
+    relationships: state.relationships ?? defaultDemoState.relationships,
+    eventLog: state.eventLog ?? defaultDemoState.eventLog,
+  };
+}
+
 export type DemoAction =
+  | "change_scene:hall"
+  | "change_scene:plaza"
+  | "change_scene:dormitory"
+  | "change_scene:sister_room"
+  | "change_scene:meditation_room"
+  | "change_scene:forge"
+  | "change_scene:alchemy_room"
+  | "change_scene:spirit_garden"
+  | "change_scene:teleport_array"
   | "cultivate"
   | "alchemy"
   | "plant"
   | "forge"
+  | "rest"
+  | "talk_xiaoxian"
+  | "sweep_plaza"
+  | "inspect_teleport"
   | "start_mouse_cave"
   | "battle_victory";
 
-export function applyDemoAction(state: DemoSaveState, action: DemoAction): DemoSaveState {
+function changeScene(state: DemoSaveState, scene: DemoScene): DemoSaveState {
+  return appendLog(
+    {
+      ...state,
+      scene,
+      location: state.location === "battle" ? "battle" : "home",
+    },
+    `前往${sceneNames[scene]}`,
+    `你来到鹿石宗${sceneNames[scene]}。这里布置简约随性，却处处像有人刚刚用过。`,
+  );
+}
+
+export function applyDemoAction(rawState: DemoSaveState, action: DemoAction): DemoSaveState {
+  const state = normalizeDemoState(rawState);
+
+  if (action.startsWith("change_scene:")) {
+    return changeScene(state, action.replace("change_scene:", "") as DemoScene);
+  }
+
   switch (action) {
     case "cultivate": {
       const next = advanceMonth({
         ...state,
+        scene: "meditation_room",
         location: "home",
         cultivation: {
           ...state.cultivation,
@@ -150,6 +233,7 @@ export function applyDemoAction(state: DemoSaveState, action: DemoAction): DemoS
         addBond(
           {
             ...state,
+            scene: "alchemy_room",
             location: "home",
             resources: {
               ...state.resources,
@@ -168,6 +252,7 @@ export function applyDemoAction(state: DemoSaveState, action: DemoAction): DemoS
         addBond(
           {
             ...state,
+            scene: "spirit_garden",
             location: "home",
             resources: {
               ...state.resources,
@@ -185,6 +270,7 @@ export function applyDemoAction(state: DemoSaveState, action: DemoAction): DemoS
         addBond(
           {
             ...state,
+            scene: "forge",
             location: "home",
             resources: {
               ...state.resources,
@@ -198,10 +284,82 @@ export function applyDemoAction(state: DemoSaveState, action: DemoAction): DemoS
       );
       return appendLog(next, "小张锻器", "小张自称张真人亲传炼器术大成，结果只锻出一把还算能卖的短剑。");
     }
+    case "rest": {
+      const next = advanceMonth({
+        ...state,
+        scene: "dormitory",
+        location: "home",
+        flags: {
+          ...state.flags,
+          dormRested: true,
+        },
+        resources: {
+          ...state.resources,
+          pills: state.resources.pills + 1,
+        },
+      });
+      return appendLog(next, "宿舍小憩", "你在简陋但干净的宿舍里睡了一觉，醒来时桌上多了一枚小娴留下的丹药。");
+    }
+    case "talk_xiaoxian": {
+      const next = addBond(
+        {
+          ...state,
+          scene: "sister_room",
+          location: "home",
+          flags: {
+            ...state.flags,
+            sisterTea: true,
+          },
+        },
+        "xiaoxian",
+        4,
+      );
+      return appendLog(next, "师姐煮茶", "小娴说小张又把自己叫成大师兄了，她笑着让你别太认真。");
+    }
+    case "sweep_plaza": {
+      const next = advanceMonth(
+        addBond(
+          {
+            ...state,
+            scene: "plaza",
+            location: "home",
+            flags: {
+              ...state.flags,
+              plazaSwept: true,
+            },
+            resources: {
+              ...state.resources,
+              spiritStones: state.resources.spiritStones + 10,
+            },
+          },
+          "xiao-zhang",
+          1,
+        ),
+      );
+      return appendLog(next, "广场洒扫", "你在广场石缝里捡到几枚灵石。小张说这是鹿真人布下的机缘，听起来很像他临时编的。");
+    }
+    case "inspect_teleport": {
+      const next = appendLog(
+        {
+          ...state,
+          scene: "teleport_array",
+          location: "home",
+          flags: {
+            ...state.flags,
+            teleportChecked: true,
+            mouseCaveUnlocked: true,
+          },
+        },
+        "传送阵微光",
+        "阵纹亮起一角，似乎能通往后山山鼠洞。鹿真人确实没给鹿石宗修山门。",
+      );
+      return next;
+    }
     case "start_mouse_cave": {
       return appendLog(
         {
           ...state,
+          scene: "teleport_array",
           location: "battle",
           flags: {
             ...state.flags,
@@ -209,12 +367,13 @@ export function applyDemoAction(state: DemoSaveState, action: DemoAction): DemoS
           },
         },
         "山鼠洞觅宝",
-        "小张在后山发现一处洞穴，里面似乎有灵石气息。",
+        "传送阵一闪，你和小张落在后山洞口，里面传来窸窸窣窣的啃咬声。",
       );
     }
     case "battle_victory": {
       const next = advanceMonth({
         ...state,
+        scene: "plaza",
         location: "home",
         resources: {
           ...state.resources,
