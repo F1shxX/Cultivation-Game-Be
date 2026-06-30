@@ -36,11 +36,13 @@ Do not commit `.env`.
 
 ## Demo save table
 
-Run this SQL in the Supabase SQL Editor before using the demo save API:
+Run migrations before using the demo save API:
 
-```text
-supabase/migrations/202606300001_create_demo_saves.sql
+```bash
+npm run db:migrate
 ```
+
+This reads `DATABASE_URL` from `.env` and applies SQL files in `supabase/migrations`.
 
 Demo endpoints:
 
