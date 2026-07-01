@@ -100,6 +100,21 @@ export type DemoSaveRecord = {
 
 type DemoEventNodeMode = "dialogue" | "choice" | "battle" | "reward";
 
+type DemoEventVisualStage =
+  | "teleport_departure"
+  | "mouse_cave"
+  | "mouse_skirmish"
+  | "mouse_boss_crisis"
+  | "qingmu_rescue"
+  | "mouse_boss_final"
+  | "mouse_reward"
+  | "bridge_village"
+  | "bridge_skirmish"
+  | "bridge_confrontation"
+  | "wish_eater_reveal"
+  | "wish_eater_boss"
+  | "bridge_reward";
+
 type DemoEventChoice = {
   action: DemoEventChoiceAction;
   key: string;
@@ -114,6 +129,7 @@ type DemoEventNode = {
   speaker: string;
   text: string;
   mode: DemoEventNodeMode;
+  visualStage: DemoEventVisualStage;
   choices?: DemoEventChoice[];
 };
 
@@ -158,6 +174,7 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
         speaker: "小张",
         text: "我听山下猎户说，后山那个山鼠洞里头，藏着上古秘宝！师弟，今日便是本真人扬名之时。",
         mode: "dialogue",
+        visualStage: "teleport_departure",
       },
       {
         id: "cave-mouth",
@@ -165,6 +182,7 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
         speaker: "主角",
         text: "洞口阴冷潮湿，里面传来窸窸窣窣的啃咬声。小张说那是秘宝的灵压。",
         mode: "choice",
+        visualStage: "mouse_cave",
         choices: [
           {
             action: "event_choice:mouse_joke",
@@ -188,6 +206,7 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
         speaker: "小张",
         text: "一群山鼠仔从石缝里扑出。小张拔剑大喊：区区鼠辈，也敢挡本真人的路！",
         mode: "battle",
+        visualStage: "mouse_skirmish",
       },
       {
         id: "rat-king",
@@ -195,6 +214,7 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
         speaker: "张真人",
         text: "地面震动，山鼠王撞碎石壁。小张脸色一变：师姐救……师姐不在。行吧，那只能靠我自己了。",
         mode: "battle",
+        visualStage: "mouse_boss_crisis",
       },
       {
         id: "qingmu-arrives",
@@ -202,6 +222,7 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
         speaker: "羊七道人",
         text: "一根青藤破岩而出，缠住山鼠王咽喉。羊七道人沉声喝道：孽畜，找死！",
         mode: "dialogue",
+        visualStage: "qingmu_rescue",
       },
       {
         id: "misunderstanding",
@@ -209,6 +230,7 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
         speaker: "豆髯道人",
         text: "两位道人胡须浓密、面相凶悍，怎么看都像刚打完劫。豆髯道人却笑得很灿烂。",
         mode: "choice",
+        visualStage: "qingmu_rescue",
         choices: [
           {
             action: "event_choice:qingmu_trust",
@@ -227,11 +249,20 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
         ],
       },
       {
+        id: "final-rat-king",
+        title: "合力再战山鼠王",
+        speaker: "羊七道人",
+        text: "山鼠王挣断半截青藤，妖气重新聚拢。羊七道人压住阵脚，豆髯道人大笑：小兄弟，这回一起上！",
+        mode: "battle",
+        visualStage: "mouse_boss_final",
+      },
+      {
         id: "reward",
         title: "忘忧根交易",
         speaker: "豆髯道人",
         text: "哈哈哈哈，小兄弟，误会误会！我们是青木门的。所谓秘宝其实是忘忧根，换你们几枚疗伤丹如何？",
         mode: "reward",
+        visualStage: "mouse_reward",
       },
     ],
   },
@@ -251,6 +282,7 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
         speaker: "小张",
         text: "断桥村半月来愿望成祟，村民接连失踪。小张拍胸口：这种事，当然要由本真人主持公道。",
         mode: "dialogue",
+        visualStage: "bridge_village",
       },
       {
         id: "village",
@@ -258,6 +290,7 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
         speaker: "村民",
         text: "村民说，桥边有个乞儿日日替人许愿，许过愿的人却一个个被邪祟缠身。",
         mode: "dialogue",
+        visualStage: "bridge_village",
       },
       {
         id: "minions",
@@ -265,6 +298,7 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
         speaker: "小张",
         text: "黑影从残屋里钻出，爪牙带着怨气扑来。小张拔剑时还不忘摆出大师兄的姿势。",
         mode: "battle",
+        visualStage: "bridge_skirmish",
       },
       {
         id: "bridge-dispute",
@@ -272,6 +306,7 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
         speaker: "小鹿",
         text: "断桥边，雏雏与小鹿正要处置一个乞儿。小鹿低声问：师兄，这半个月的事十有八九是他干的，要不要我现在就送他一程？",
         mode: "choice",
+        visualStage: "bridge_confrontation",
         choices: [
           {
             action: "event_choice:protect_beggar",
@@ -295,6 +330,7 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
         speaker: "啖愿妖",
         text: "乞儿低笑，皮囊像纸一样裂开：既然都到齐了，那就一起留下吧！",
         mode: "dialogue",
+        visualStage: "wish_eater_reveal",
       },
       {
         id: "boss",
@@ -302,6 +338,7 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
         speaker: "雏雏",
         text: "金灵剑光斩开妖雾，小鹿封住退路。你和小张被卷入战阵，必须合力击败啖愿妖。",
         mode: "battle",
+        visualStage: "wish_eater_boss",
       },
       {
         id: "reward",
@@ -309,6 +346,7 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
         speaker: "雏雏",
         text: "我二人是金灵宗弟子，雏雏、小鹿。方才事急，言语冒犯。小鹿补了一句：下次遇到可怜人，先看清楚再心软。",
         mode: "reward",
+        visualStage: "bridge_reward",
       },
     ],
   },
