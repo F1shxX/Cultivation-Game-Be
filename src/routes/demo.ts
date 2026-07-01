@@ -1,31 +1,12 @@
 import { Router } from "express";
 import { z } from "zod";
+import { demoActions, demoEventDefinitions } from "../domain/demoSave.js";
 import { performDemoAction, resetDemoSave, getDemoSave } from "../services/demoSaveService.js";
 
 export const demoRouter = Router();
 
 const actionSchema = z.object({
-  action: z.enum([
-    "change_scene:hall",
-    "change_scene:plaza",
-    "change_scene:dormitory",
-    "change_scene:sister_room",
-    "change_scene:meditation_room",
-    "change_scene:forge",
-    "change_scene:alchemy_room",
-    "change_scene:spirit_garden",
-    "change_scene:teleport_array",
-    "cultivate",
-    "alchemy",
-    "plant",
-    "forge",
-    "rest",
-    "talk_xiaoxian",
-    "sweep_plaza",
-    "inspect_teleport",
-    "start_mouse_cave",
-    "battle_victory",
-  ]),
+  action: z.enum(demoActions),
 });
 
 function sendRouteError(res: import("express").Response, error: unknown) {
@@ -48,6 +29,13 @@ demoRouter.get("/save", async (_req, res) => {
   } catch (error) {
     sendRouteError(res, error);
   }
+});
+
+demoRouter.get("/events", (_req, res) => {
+  res.json({
+    ok: true,
+    events: demoEventDefinitions,
+  });
 });
 
 demoRouter.post("/reset", async (_req, res) => {

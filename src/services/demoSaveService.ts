@@ -2,6 +2,7 @@ import { config } from "../config/env.js";
 import {
   applyDemoAction,
   defaultDemoState,
+  normalizeDemoState,
   type DemoAction,
   type DemoSaveRecord,
   type DemoSaveState,
@@ -33,7 +34,13 @@ export async function getDemoSave(playerId = config.demoPlayerId): Promise<DemoS
   const mappedError = mapSupabaseError(error);
   if (mappedError) throw mappedError;
 
-  if (data) return data as DemoSaveRecord;
+  if (data) {
+    const record = data as DemoSaveRecord;
+    return {
+      ...record,
+      state: normalizeDemoState(record.state),
+    };
+  }
 
   return upsertDemoSave(defaultDemoState, playerId);
 }
