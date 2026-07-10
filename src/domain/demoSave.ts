@@ -160,27 +160,27 @@ export const sceneNames: Record<DemoScene, string> = {
 export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
   mouse_cave_treasure: {
     id: "mouse_cave_treasure",
-    title: "山鼠洞觅宝",
+    title: "山鼠洞寻宝",
     triggerYear: 10,
-    category: "探险",
+    category: "外出奇遇",
     location: "鹿石宗附近山地 · 山鼠洞",
     participants: ["主角", "小张", "羊七道人", "豆髯道人"],
-    summary: "小张邀约探宝，误入山鼠洞后遭遇山鼠王，青木门羊七道人与豆髯道人出手相助。",
-    rewardText: "灵石50、山鼠妖丹1枚、青木门初识。",
+    summary: "小张吹牛邀约探宝，二人误入山鼠洞后遭遇山鼠王，濒危时由青木门羊七道人与豆髯道人出手相救。",
+    rewardText: "灵石50、山鼠妖丹1枚、忘忧根1株、青木疗伤丹2枚、青木门羁绊。",
     nodes: [
       {
         id: "invite",
         title: "小张邀约探宝",
         speaker: "小张",
-        text: "我听山下猎户说，后山那个山鼠洞里头，藏着上古秘宝！师弟，今日便是本真人扬名之时。",
+        text: "哎哎哎，师弟，跟你说个事儿，你可千万别声张。我听山下猎户说，后山那个山鼠洞里头，藏着上古秘宝！找着了平分，找不着也当练手，反正我大师兄罩着你。",
         mode: "dialogue",
         visualStage: "teleport_departure",
       },
       {
         id: "cave-mouth",
         title: "山鼠洞洞口",
-        speaker: "主角",
-        text: "洞口阴冷潮湿，里面传来窸窸窣窣的啃咬声。小张说那是秘宝的灵压。",
+        speaker: "小张",
+        text: "到了到了，就是这儿。你闻闻，是不是有股子宝气？洞口藤蔓乱爬，里面还传来窸窸窣窣的响动。",
         mode: "choice",
         visualStage: "mouse_cave",
         choices: [
@@ -189,7 +189,7 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
             key: "joke",
             label: "那是老鼠味儿吧",
             logTitle: "洞口吐槽",
-            logText: "你指出这股气味和上古秘宝没什么关系，小张选择性没有听见。",
+            logText: "你指出这股气味和上古秘宝没什么关系。小张咳了一声，说细节不重要。",
           },
           {
             action: "event_choice:mouse_careful",
@@ -202,7 +202,7 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
       },
       {
         id: "small-rats",
-        title: "山鼠仔来袭",
+        title: "洞穴前段 · 山鼠仔",
         speaker: "小张",
         text: "一群山鼠仔从石缝里扑出。小张拔剑大喊：区区鼠辈，也敢挡本真人的路！",
         mode: "battle",
@@ -210,17 +210,17 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
       },
       {
         id: "rat-king",
-        title: "山鼠王现身",
+        title: "洞穴深处 · 山鼠王",
         speaker: "张真人",
-        text: "地面震动，山鼠王撞碎石壁。小张脸色一变：师姐救……师姐不在。行吧，那只能靠我自己了。",
+        text: "这……这老鼠也太大了吧？！师姐救……师姐不在。行吧，那只能靠我自己了。你先撤，我拖着它！",
         mode: "battle",
         visualStage: "mouse_boss_crisis",
       },
       {
         id: "qingmu-arrives",
-        title: "青木门出手",
+        title: "羊七豆髯登场",
         speaker: "羊七道人",
-        text: "一根青藤破岩而出，缠住山鼠王咽喉。羊七道人沉声喝道：孽畜，找死！",
+        text: "孽畜，找死！一根青藤破岩而出，缠住山鼠王咽喉。两位胡须浓密、相貌凶悍的道人踏入洞中。",
         mode: "dialogue",
         visualStage: "qingmu_rescue",
       },
@@ -228,7 +228,7 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
         id: "misunderstanding",
         title: "误会凶相",
         speaker: "豆髯道人",
-        text: "两位道人胡须浓密、面相凶悍，怎么看都像刚打完劫。豆髯道人却笑得很灿烂。",
+        text: "哈哈哈哈，小兄弟，误会误会！我们是青木门的，我叫豆髯，这位是我师弟羊七。山里毒虫最近闹得凶，我们是来查探的，正好撞见你们跟这畜生缠斗。",
         mode: "choice",
         visualStage: "qingmu_rescue",
         choices: [
@@ -237,7 +237,7 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
             key: "trust",
             label: "收起戒备",
             logTitle: "青木门善意",
-            logText: "你收起戒备。豆髯道人哈哈大笑，说青木门只是长得像反派。",
+            logText: "你收起戒备。豆髯道人笑得灿烂，说他们只是长得凶了点。",
           },
           {
             action: "event_choice:qingmu_guard",
@@ -252,7 +252,7 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
         id: "final-rat-king",
         title: "合力再战山鼠王",
         speaker: "羊七道人",
-        text: "山鼠王挣断半截青藤，妖气重新聚拢。羊七道人压住阵脚，豆髯道人大笑：小兄弟，这回一起上！",
+        text: "山鼠王挣断半截青藤，妖气重新聚拢。羊七道人压住阵脚，豆髯道人大笑：小兄弟，小张兄弟，这回一起上！",
         mode: "battle",
         visualStage: "mouse_boss_final",
       },
@@ -260,7 +260,7 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
         id: "reward",
         title: "忘忧根交易",
         speaker: "豆髯道人",
-        text: "哈哈哈哈，小兄弟，误会误会！我们是青木门的。所谓秘宝其实是忘忧根，换你们几枚疗伤丹如何？",
+        text: "哎哟，这不是忘忧根吗！这东西解毒疗伤都是一把好手。既然是你们先找到的，我们拿几株炼好的疗伤丹换，你看如何？",
         mode: "reward",
         visualStage: "mouse_reward",
       },
@@ -268,19 +268,19 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
   },
   wish_eater_bridge: {
     id: "wish_eater_bridge",
-    title: "断桥乞儿",
+    title: "啖愿妖事件",
     triggerYear: 12,
-    category: "探险",
+    category: "外出奇遇",
     location: "长安城郊 · 断桥村",
-    participants: ["主角", "小张", "雏雏", "小鹿"],
-    summary: "断桥村异常委托引出啖愿妖，玩家与金灵宗师兄妹因处置乞儿产生分歧，最终解除误会。",
-    rewardText: "灵石100、金灵宗初识。",
+    participants: ["主角", "小张", "雏雏（楚凌）", "小鹿（鹿宁）"],
+    summary: "断桥村异常委托引出啖愿妖，玩家与金灵宗师兄妹因处置乞儿产生分歧，最终见证正道杀伐背后的理由。",
+    rewardText: "灵石100、金灵宗信物1枚、金灵宗羁绊。",
     nodes: [
       {
         id: "commission",
-        title: "断桥村委托",
+        title: "委托的由来",
         speaker: "小张",
-        text: "断桥村半月来愿望成祟，村民接连失踪。小张拍胸口：这种事，当然要由本真人主持公道。",
+        text: "诶，师弟你看，断桥村最近闹得挺邪乎，说是夜里总有人听见哭声，天亮之后就有人失踪。正好悬赏灵石，走走走，大师兄带你去会会这个邪祟。",
         mode: "dialogue",
         visualStage: "bridge_village",
       },
@@ -288,55 +288,55 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
         id: "village",
         title: "断桥村口",
         speaker: "村民",
-        text: "村民说，桥边有个乞儿日日替人许愿，许过愿的人却一个个被邪祟缠身。",
+        text: "已经是这半个月第三个了……都是心软的人先没的。村民三三两两聚在一起，谁也不敢靠近断桥。",
         mode: "dialogue",
         visualStage: "bridge_village",
       },
       {
         id: "minions",
-        title: "邪祟爪牙",
+        title: "村外 · 邪祟爪牙",
         speaker: "小张",
-        text: "黑影从残屋里钻出，爪牙带着怨气扑来。小张拔剑时还不忘摆出大师兄的姿势。",
+        text: "好家伙，还真有货！黑影从残屋里钻出，爪牙带着怨气扑来。大师兄我今天就替天行道了！",
         mode: "battle",
         visualStage: "bridge_skirmish",
       },
       {
         id: "bridge-dispute",
-        title: "断桥争执",
+        title: "断桥边 · 撞见处决",
         speaker: "小鹿",
-        text: "断桥边，雏雏与小鹿正要处置一个乞儿。小鹿低声问：师兄，这半个月的事十有八九是他干的，要不要我现在就送他一程？",
+        text: "师兄，这半个月的事十有八九是他干的，要不要我现在就送他一程？雏雏剑锋不移，只说：再等等，还差一步。",
         mode: "choice",
         visualStage: "bridge_confrontation",
         choices: [
           {
             action: "event_choice:protect_beggar",
             key: "protect",
-            label: "拦下他们",
+            label: "先住手，问清楚",
             logTitle: "心软拦人",
-            logText: "小张挡在乞儿面前：这不过是个要饭的老实人，你们这是何苦！雏雏皱眉让你们先听内情。",
+            logText: "小张挡在乞儿面前：光天化日之下，欺负一个乞丐算什么本事！雏雏收剑半分，说那便再等一等，让你们也看清楚。",
           },
           {
             action: "event_choice:trust_jinling",
             key: "listen",
             label: "先听内情",
             logTitle: "听取内情",
-            logText: "你示意小张先别急。雏雏点头，说这乞儿并非凡人，断桥村的事也并非表面那么简单。",
+            logText: "你示意小张先别急。雏雏点头，说这件事你们不清楚内情，让开些便能看清楚。",
           },
         ],
       },
       {
         id: "reveal",
-        title: "啖愿妖露相",
+        title: "真身现形",
         speaker: "啖愿妖",
-        text: "乞儿低笑，皮囊像纸一样裂开：既然都到齐了，那就一起留下吧！",
+        text: "乞儿褴褛的伪装如皮般剥落，黑气从空洞眼窝里涌出。它狞笑道：既然都到齐了，那就一起留下吧！",
         mode: "dialogue",
         visualStage: "wish_eater_reveal",
       },
       {
         id: "boss",
-        title: "合力伏妖",
+        title: "断桥 · 啖愿妖",
         speaker: "雏雏",
-        text: "金灵剑光斩开妖雾，小鹿封住退路。你和小张被卷入战阵，必须合力击败啖愿妖。",
+        text: "啖愿妖专挑心怀怜悯之人下手，越是善良，越合它的胃口。小鹿，正面接它。你和小张也被卷入战阵，必须合力伏妖。",
         mode: "battle",
         visualStage: "wish_eater_boss",
       },
@@ -344,7 +344,7 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
         id: "reward",
         title: "解除误会",
         speaker: "雏雏",
-        text: "我二人是金灵宗弟子，雏雏、小鹿。方才事急，言语冒犯。小鹿补了一句：下次遇到可怜人，先看清楚再心软。",
+        text: "我二人是金灵宗弟子，雏雏、小鹿。金灵宗的规矩是，恶不辨清楚绝不轻饶，但也绝不冤枉一个好人。小鹿补了一句：下次遇到可怜人，先看清楚再心软。",
         mode: "reward",
         visualStage: "bridge_reward",
       },
@@ -408,7 +408,7 @@ export const defaultDemoState: DemoSaveState = {
     level: "炼气",
     realmProgress: 12,
     root: "万化道躯",
-    learnedArts: ["鹿石吐纳诀"],
+    learnedArts: ["鹿花诀"],
   },
   resources: {
     spiritStones: 120,
@@ -446,7 +446,7 @@ export const defaultDemoState: DemoSaveState = {
       year: 1,
       month: 1,
       title: "魂落此间",
-      text: "你在鹿石宗醒来。鹿真人说你身无灵根，却能化去灵气。",
+      text: "你在鹿石宗醒来。鹿真人说你身无灵根，却能化去灵气，并留下了一门看似寻常的鹿花诀。",
     },
   ],
 };
@@ -505,6 +505,12 @@ function upsertRelationship(
   }
 
   return addBond(state, relationship.characterId, relationship.bond);
+}
+
+function normalizeLearnedArts(learnedArts: string[]) {
+  return Array.from(
+    new Set(learnedArts.map((art) => (art === "鹿石吐纳诀" ? "鹿花诀" : art))),
+  );
 }
 
 function eventNodeLocation(node: DemoEventNode): DemoLocation {
@@ -723,6 +729,9 @@ export function normalizeDemoState(state: Partial<DemoSaveState> | DemoSaveState
     cultivation: {
       ...defaultDemoState.cultivation,
       ...state.cultivation,
+      learnedArts: normalizeLearnedArts(
+        state.cultivation?.learnedArts ?? defaultDemoState.cultivation.learnedArts,
+      ),
     },
     resources: {
       ...defaultDemoState.resources,
