@@ -5,8 +5,20 @@ import { performDemoAction, resetDemoSave, getDemoSave } from "../services/demoS
 
 export const demoRouter = Router();
 
+const battleResultSchema = z.object({
+  stageId: z.string().min(1).max(80),
+  victory: z.boolean(),
+  kills: z.number().int().min(0).max(999),
+  seconds: z.number().int().min(0).max(999),
+  hpPercent: z.number().int().min(0).max(100),
+  spiritStones: z.number().int().min(0).max(300),
+  damageTaken: z.number().int().min(0).max(9999),
+  bossDefeated: z.boolean(),
+});
+
 const actionSchema = z.object({
   action: z.enum(demoActions),
+  battleResult: battleResultSchema.optional(),
 });
 
 function sendRouteError(res: import("express").Response, error: unknown) {
@@ -61,7 +73,9 @@ demoRouter.post("/action", async (req, res) => {
   }
 
   try {
-    const save = await performDemoAction(result.data.action);
+    const save = await performDemoAction(result.data.action, {
+      battleResult: result.data.battleResult,
+    });
     res.json({
       ok: true,
       save,

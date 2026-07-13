@@ -4,6 +4,7 @@ import {
   defaultDemoState,
   normalizeDemoState,
   type DemoAction,
+  type DemoActionContext,
   type DemoSaveRecord,
   type DemoSaveState,
 } from "../domain/demoSave.js";
@@ -75,9 +76,10 @@ export async function resetDemoSave(playerId = config.demoPlayerId): Promise<Dem
 
 export async function performDemoAction(
   action: DemoAction,
+  context: DemoActionContext = {},
   playerId = config.demoPlayerId,
 ): Promise<DemoSaveRecord> {
   const save = await getDemoSave(playerId);
-  const nextState = applyDemoAction(save.state, action);
+  const nextState = applyDemoAction(save.state, action, context);
   return upsertDemoSave(nextState, playerId);
 }

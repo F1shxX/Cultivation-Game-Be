@@ -76,6 +76,26 @@ export type DemoEventLogEntry = {
   text: string;
 };
 
+export type DemoBattleResult = {
+  stageId: string;
+  victory: boolean;
+  kills: number;
+  seconds: number;
+  hpPercent: number;
+  spiritStones: number;
+  damageTaken: number;
+  bossDefeated: boolean;
+};
+
+export type DemoBattleStats = {
+  runs: number;
+  victories: number;
+  defeats: number;
+  kills: number;
+  bestSeconds: number | null;
+  lastResult: DemoBattleResult | null;
+};
+
 export type DemoSaveState = {
   year: number;
   month: number;
@@ -88,6 +108,7 @@ export type DemoSaveState = {
   inventory: DemoInventory;
   relationships: DemoRelationship[];
   flags: Record<string, boolean>;
+  battleStats: DemoBattleStats;
   eventLog: DemoEventLogEntry[];
 };
 
@@ -397,6 +418,10 @@ export const demoActions = [
 
 export type DemoAction = (typeof demoActions)[number];
 
+export type DemoActionContext = {
+  battleResult?: DemoBattleResult;
+};
+
 export const defaultDemoState: DemoSaveState = {
   year: 1,
   month: 1,
@@ -441,6 +466,14 @@ export const defaultDemoState: DemoSaveState = {
     wishEaterCompleted: false,
     jinlingIntroduced: false,
   },
+  battleStats: {
+    runs: 0,
+    victories: 0,
+    defeats: 0,
+    kills: 0,
+    bestSeconds: null,
+    lastResult: null,
+  },
   eventLog: [
     {
       year: 1,
@@ -455,6 +488,19 @@ const MAX_LOG_ENTRIES = 16;
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
+}
+
+function normalizeBattleResult(result?: DemoBattleResult): DemoBattleResult {
+  return {
+    stageId: result?.stageId ?? "unknown",
+    victory: result?.victory ?? true,
+    kills: clamp(Math.round(result?.kills ?? 0), 0, 999),
+    seconds: clamp(Math.round(result?.seconds ?? 0), 0, 999),
+    hpPercent: clamp(Math.round(result?.hpPercent ?? 0), 0, 100),
+    spiritStones: clamp(Math.round(result?.spiritStones ?? 0), 0, 300),
+    damageTaken: clamp(Math.round(result?.damageTaken ?? 0), 0, 9999),
+    bossDefeated: result?.bossDefeated ?? false,
+  };
 }
 
 function appendLog(state: DemoSaveState, title: string, text: string): DemoSaveState {
@@ -505,6 +551,46 @@ function upsertRelationship(
   }
 
   return addBond(state, relationship.characterId, relationship.bond);
+}
+
+function recordBattleResult(
+  rawState: DemoSaveState,
+  rawResult?: DemoBattleResult,
+): DemoSaveState {
+  const result = normalizeBattleResult(rawResult);
+  const currentNode = rawState.activeEvent
+    ? demoEventDefinitions[rawState.activeEvent.id].nodes[rawState.activeEvent.nodeIndex]
+    : null;
+  const currentStats = rawState.battleStats ?? defaultDemoState.battleStats;
+  const bestSeconds =
+    result.victory && (currentStats.bestSeconds === null || result.seconds < currentStats.bestSeconds)
+      ? result.seconds
+      : currentStats.bestSeconds;
+
+  const withStats: DemoSaveState = {
+    ...rawState,
+    resources: {
+      ...rawState.resources,
+      spiritStones: rawState.resources.spiritStones + result.spiritStones,
+    },
+    battleStats: {
+      runs: currentStats.runs + 1,
+      victories: currentStats.victories + (result.victory ? 1 : 0),
+      defeats: currentStats.defeats + (result.victory ? 0 : 1),
+      kills: currentStats.kills + result.kills,
+      bestSeconds,
+      lastResult: result,
+    },
+  };
+
+  const title = result.victory ? "战斗胜利" : "战斗失利";
+  const nodeTitle = currentNode ? `「${currentNode.title}」` : "外出战斗";
+  const rewardText = result.spiritStones > 0 ? `，掉落灵石${result.spiritStones}` : "";
+  return appendLog(
+    withStats,
+    title,
+    `${nodeTitle}结算：击杀${result.kills}，用时${result.seconds}秒，剩余气血${result.hpPercent}%${rewardText}。`,
+  );
 }
 
 function normalizeLearnedArts(learnedArts: string[]) {
@@ -741,6 +827,10 @@ export function normalizeDemoState(state: Partial<DemoSaveState> | DemoSaveState
       ...defaultDemoState.inventory,
       ...state.inventory,
     },
+    battleStats: {
+      ...defaultDemoState.battleStats,
+      ...state.battleStats,
+    },
     flags: {
       ...defaultDemoState.flags,
       ...state.flags,
@@ -771,7 +861,11 @@ function changeScene(state: DemoSaveState, scene: DemoScene): DemoSaveState {
   );
 }
 
-export function applyDemoAction(rawState: DemoSaveState, action: DemoAction): DemoSaveState {
+export function applyDemoAction(
+  rawState: DemoSaveState,
+  action: DemoAction,
+  context: DemoActionContext = {},
+): DemoSaveState {
   const state = normalizeDemoState(rawState);
 
   const eventAction =
@@ -952,22 +1046,23 @@ export function applyDemoAction(rawState: DemoSaveState, action: DemoAction): De
     }
     case "battle_victory": {
       if (state.activeEvent) {
-        return advanceEvent(state);
+        return advanceEvent(recordBattleResult(state, context.battleResult));
       }
 
+      const withBattleResult = recordBattleResult(state, context.battleResult);
       const next = advanceMonth({
-        ...state,
+        ...withBattleResult,
         scene: "plaza",
         location: "home",
         resources: {
-          ...state.resources,
-          spiritStones: state.resources.spiritStones + 90,
-          herbs: state.resources.herbs + 2,
-          ore: state.resources.ore + 1,
+          ...withBattleResult.resources,
+          spiritStones: withBattleResult.resources.spiritStones + 90,
+          herbs: withBattleResult.resources.herbs + 2,
+          ore: withBattleResult.resources.ore + 1,
         },
         cultivation: {
-          ...state.cultivation,
-          learnedArts: Array.from(new Set([...state.cultivation.learnedArts, "碎石剑气"])),
+          ...withBattleResult.cultivation,
+          learnedArts: Array.from(new Set([...withBattleResult.cultivation.learnedArts, "碎石剑气"])),
         },
       });
       return appendLog(next, "山鼠退散", "你以碎石剑气击退山鼠，带回一袋灵石和一卷残破功法。");
