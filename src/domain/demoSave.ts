@@ -96,6 +96,26 @@ export type DemoBattleStats = {
   lastResult: DemoBattleResult | null;
 };
 
+export type DemoMethodId = "luhua_jue" | "jinmang_jue" | "yanxin_jue";
+export type DemoSpellId = "jinmang" | "shuiren" | "huodan";
+export type DemoTechniqueId = "straight" | "ring" | "drop";
+export type DemoSecretId = "cuti" | "mingmu" | "pojia" | "yufeng";
+
+export type DemoLoadout = {
+  methodId: DemoMethodId;
+  spellSlot: {
+    spellId: DemoSpellId;
+    techniqueId: DemoTechniqueId;
+    secretIds: [DemoSecretId, DemoSecretId];
+  };
+};
+
+export type DemoEquipment = {
+  weapon: string;
+  armor: string;
+  accessory: string;
+};
+
 export type DemoSaveState = {
   year: number;
   month: number;
@@ -106,6 +126,8 @@ export type DemoSaveState = {
   cultivation: DemoCultivationState;
   resources: DemoResources;
   inventory: DemoInventory;
+  equipment: DemoEquipment;
+  loadout: DemoLoadout;
   relationships: DemoRelationship[];
   flags: Record<string, boolean>;
   battleStats: DemoBattleStats;
@@ -399,6 +421,64 @@ const eventChoiceActions = [
   "event_choice:trust_jinling",
 ] as const;
 
+const methodIds = ["luhua_jue", "jinmang_jue", "yanxin_jue"] as const;
+const spellIds = ["jinmang", "shuiren", "huodan"] as const;
+const techniqueIds = ["straight", "ring", "drop"] as const;
+const secretIds = ["cuti", "mingmu", "pojia", "yufeng"] as const;
+
+const equipMethodActions = methodIds.map((id) => `equip_method:${id}`) as [
+  "equip_method:luhua_jue",
+  "equip_method:jinmang_jue",
+  "equip_method:yanxin_jue",
+];
+const equipSpellActions = spellIds.map((id) => `equip_spell:${id}`) as [
+  "equip_spell:jinmang",
+  "equip_spell:shuiren",
+  "equip_spell:huodan",
+];
+const equipTechniqueActions = techniqueIds.map((id) => `equip_technique:${id}`) as [
+  "equip_technique:straight",
+  "equip_technique:ring",
+  "equip_technique:drop",
+];
+const equipSecretOneActions = secretIds.map((id) => `equip_secret_1:${id}`) as [
+  "equip_secret_1:cuti",
+  "equip_secret_1:mingmu",
+  "equip_secret_1:pojia",
+  "equip_secret_1:yufeng",
+];
+const equipSecretTwoActions = secretIds.map((id) => `equip_secret_2:${id}`) as [
+  "equip_secret_2:cuti",
+  "equip_secret_2:mingmu",
+  "equip_secret_2:pojia",
+  "equip_secret_2:yufeng",
+];
+
+const methodNames: Record<DemoMethodId, string> = {
+  luhua_jue: "鹿花诀",
+  jinmang_jue: "金芒诀",
+  yanxin_jue: "焰心诀",
+};
+
+const spellNames: Record<DemoSpellId, string> = {
+  jinmang: "金芒",
+  shuiren: "水刃",
+  huodan: "火弹",
+};
+
+const techniqueNames: Record<DemoTechniqueId, string> = {
+  straight: "直线飞行",
+  ring: "环形扩散",
+  drop: "天降坠击",
+};
+
+const secretNames: Record<DemoSecretId, string> = {
+  cuti: "淬体",
+  mingmu: "明目",
+  pojia: "破甲",
+  yufeng: "御风",
+};
+
 export const demoActions = [
   ...sceneActions,
   "cultivate",
@@ -414,6 +494,11 @@ export const demoActions = [
   ...eventStartActions,
   "advance_event",
   ...eventChoiceActions,
+  ...equipMethodActions,
+  ...equipSpellActions,
+  ...equipTechniqueActions,
+  ...equipSecretOneActions,
+  ...equipSecretTwoActions,
 ] as const;
 
 export type DemoAction = (typeof demoActions)[number];
@@ -433,7 +518,7 @@ export const defaultDemoState: DemoSaveState = {
     level: "炼气",
     realmProgress: 12,
     root: "万化道躯",
-    learnedArts: ["鹿花诀"],
+    learnedArts: ["鹿花诀", "金芒诀", "焰心诀"],
   },
   resources: {
     spiritStones: 120,
@@ -447,6 +532,19 @@ export const defaultDemoState: DemoSaveState = {
     worryForgetRoot: 0,
     qingmuHealingPills: 0,
     jinlingToken: 0,
+  },
+  equipment: {
+    weapon: "青锋剑",
+    armor: "旧布法袍",
+    accessory: "鹿石令",
+  },
+  loadout: {
+    methodId: "luhua_jue",
+    spellSlot: {
+      spellId: "jinmang",
+      techniqueId: "straight",
+      secretIds: ["cuti", "mingmu"],
+    },
   },
   relationships: [
     { characterId: "lu-zhenren", name: "鹿真人", bond: 10 },
@@ -597,6 +695,34 @@ function normalizeLearnedArts(learnedArts: string[]) {
   return Array.from(
     new Set(learnedArts.map((art) => (art === "鹿石吐纳诀" ? "鹿花诀" : art))),
   );
+}
+
+function isOneOf<const T extends readonly string[]>(value: unknown, allowed: T): value is T[number] {
+  return typeof value === "string" && allowed.includes(value);
+}
+
+function normalizeLoadout(loadout: Partial<DemoLoadout> | undefined): DemoLoadout {
+  const spellSlot = loadout?.spellSlot;
+  const firstSecret = Array.isArray(spellSlot?.secretIds) ? spellSlot.secretIds[0] : undefined;
+  const secondSecret = Array.isArray(spellSlot?.secretIds) ? spellSlot.secretIds[1] : undefined;
+
+  return {
+    methodId: isOneOf(loadout?.methodId, methodIds)
+      ? loadout.methodId
+      : defaultDemoState.loadout.methodId,
+    spellSlot: {
+      spellId: isOneOf(spellSlot?.spellId, spellIds)
+        ? spellSlot.spellId
+        : defaultDemoState.loadout.spellSlot.spellId,
+      techniqueId: isOneOf(spellSlot?.techniqueId, techniqueIds)
+        ? spellSlot.techniqueId
+        : defaultDemoState.loadout.spellSlot.techniqueId,
+      secretIds: [
+        isOneOf(firstSecret, secretIds) ? firstSecret : defaultDemoState.loadout.spellSlot.secretIds[0],
+        isOneOf(secondSecret, secretIds) ? secondSecret : defaultDemoState.loadout.spellSlot.secretIds[1],
+      ],
+    },
+  };
 }
 
 function eventNodeLocation(node: DemoEventNode): DemoLocation {
@@ -816,7 +942,12 @@ export function normalizeDemoState(state: Partial<DemoSaveState> | DemoSaveState
       ...defaultDemoState.cultivation,
       ...state.cultivation,
       learnedArts: normalizeLearnedArts(
-        state.cultivation?.learnedArts ?? defaultDemoState.cultivation.learnedArts,
+        [
+          ...(state.cultivation?.learnedArts ?? defaultDemoState.cultivation.learnedArts),
+          "鹿花诀",
+          "金芒诀",
+          "焰心诀",
+        ],
       ),
     },
     resources: {
@@ -827,6 +958,11 @@ export function normalizeDemoState(state: Partial<DemoSaveState> | DemoSaveState
       ...defaultDemoState.inventory,
       ...state.inventory,
     },
+    equipment: {
+      ...defaultDemoState.equipment,
+      ...state.equipment,
+    },
+    loadout: normalizeLoadout(state.loadout),
     battleStats: {
       ...defaultDemoState.battleStats,
       ...state.battleStats,
@@ -859,6 +995,93 @@ function changeScene(state: DemoSaveState, scene: DemoScene): DemoSaveState {
     `前往${sceneNames[scene]}`,
     `你来到鹿石宗${sceneNames[scene]}。这里布置简约随性，却处处像有人刚刚用过。`,
   );
+}
+
+function equipLoadout(state: DemoSaveState, action: DemoAction): DemoSaveState {
+  if (state.location === "battle") {
+    return appendLog(state, "战斗中不可切换", "当前已经进入战斗，功法和术法配置被锁定。");
+  }
+
+  if (action.startsWith("equip_method:")) {
+    const methodId = action.replace("equip_method:", "");
+    if (!isOneOf(methodId, methodIds)) return state;
+    return appendLog(
+      {
+        ...state,
+        loadout: {
+          ...state.loadout,
+          methodId,
+        },
+      },
+      "装配功法",
+      `你将主修功法切换为「${methodNames[methodId]}」。`,
+    );
+  }
+
+  if (action.startsWith("equip_spell:")) {
+    const spellId = action.replace("equip_spell:", "");
+    if (!isOneOf(spellId, spellIds)) return state;
+    return appendLog(
+      {
+        ...state,
+        loadout: {
+          ...state.loadout,
+          spellSlot: {
+            ...state.loadout.spellSlot,
+            spellId,
+          },
+        },
+      },
+      "装配术法",
+      `你将法术位术法切换为「${spellNames[spellId]}」。`,
+    );
+  }
+
+  if (action.startsWith("equip_technique:")) {
+    const techniqueId = action.replace("equip_technique:", "");
+    if (!isOneOf(techniqueId, techniqueIds)) return state;
+    return appendLog(
+      {
+        ...state,
+        loadout: {
+          ...state.loadout,
+          spellSlot: {
+            ...state.loadout.spellSlot,
+            techniqueId,
+          },
+        },
+      },
+      "装配技法",
+      `你将法术位技法切换为「${techniqueNames[techniqueId]}」。`,
+    );
+  }
+
+  if (action.startsWith("equip_secret_1:") || action.startsWith("equip_secret_2:")) {
+    const slotIndex = action.startsWith("equip_secret_1:") ? 0 : 1;
+    const secretId = action.replace(slotIndex === 0 ? "equip_secret_1:" : "equip_secret_2:", "");
+    if (!isOneOf(secretId, secretIds)) return state;
+    const nextSecrets: [DemoSecretId, DemoSecretId] = [
+      state.loadout.spellSlot.secretIds[0],
+      state.loadout.spellSlot.secretIds[1],
+    ];
+    nextSecrets[slotIndex] = secretId;
+    return appendLog(
+      {
+        ...state,
+        loadout: {
+          ...state.loadout,
+          spellSlot: {
+            ...state.loadout.spellSlot,
+            secretIds: nextSecrets,
+          },
+        },
+      },
+      "装配秘法",
+      `你将秘法${slotIndex + 1}切换为「${secretNames[secretId]}」。`,
+    );
+  }
+
+  return state;
 }
 
 export function applyDemoAction(
@@ -895,6 +1118,16 @@ export function applyDemoAction(
     return chooseEventOption(state, action as DemoEventChoiceAction);
   }
 
+  if (
+    action.startsWith("equip_method:") ||
+    action.startsWith("equip_spell:") ||
+    action.startsWith("equip_technique:") ||
+    action.startsWith("equip_secret_1:") ||
+    action.startsWith("equip_secret_2:")
+  ) {
+    return equipLoadout(state, action);
+  }
+
   switch (action) {
     case "cultivate": {
       const next = advanceMonth({
@@ -910,7 +1143,7 @@ export function applyDemoAction(
           spiritStones: Math.max(0, state.resources.spiritStones - 15),
         },
       });
-      return appendLog(next, "闭关修炼", "你运转鹿石吐纳诀，万化道躯微微发热。");
+      return appendLog(next, "闭关修炼", "你运转鹿花诀，万化道躯微微发热。");
     }
     case "alchemy": {
       const next = advanceMonth(
