@@ -511,7 +511,7 @@ export const defaultDemoState: DemoSaveState = {
   year: 1,
   month: 1,
   location: "home",
-  scene: "hall",
+  scene: "plaza",
   activeEvent: null,
   completedEvents: [],
   cultivation: {
