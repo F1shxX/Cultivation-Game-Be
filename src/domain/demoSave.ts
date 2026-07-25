@@ -935,7 +935,7 @@ export function normalizeDemoState(state: Partial<DemoSaveState> | DemoSaveState
   return {
     ...defaultDemoState,
     ...state,
-    scene: state.scene ?? "hall",
+    scene: state.scene ?? "plaza",
     activeEvent: state.activeEvent ?? null,
     completedEvents: state.completedEvents ?? [],
     cultivation: {
