@@ -986,6 +986,18 @@ function changeScene(state: DemoSaveState, scene: DemoScene): DemoSaveState {
     );
   }
 
+  if (scene === state.scene) {
+    return state;
+  }
+
+  if (state.scene !== "plaza" && scene !== "plaza") {
+    return appendLog(
+      state,
+      "需先返回广场",
+      `你现在位于${sceneNames[state.scene]}。前往${sceneNames[scene]}前，必须先返回广场。`,
+    );
+  }
+
   return appendLog(
     {
       ...state,
