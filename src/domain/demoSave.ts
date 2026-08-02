@@ -33,7 +33,7 @@ export type DemoActiveEvent = {
 };
 
 export type DemoCultivationState = {
-  level: "炼气";
+  level: "炼气" | "筑基";
   realmProgress: number;
   root: "万化道躯";
   learnedArts: string[];
@@ -116,6 +116,68 @@ export type DemoEquipment = {
   accessory: string;
 };
 
+export type DemoPlayerProfile = {
+  created: boolean;
+  name: string;
+  gender: "male" | "female";
+  outfit: "qingshan" | "daopao" | "jinzhuang" | "xianpao";
+  difficulty: "easy" | "normal" | "hard" | "extreme";
+  fate: "genius" | "talented" | "average" | "mortal";
+  perks: string[];
+  attributes: {
+    aptitude: number;
+    comprehension: number;
+    spirit: number;
+    speed: number;
+    fortune: number;
+  };
+};
+
+export type DemoGardenHerbId =
+  | "juqi"
+  | "ningxue"
+  | "huoli"
+  | "shizhi"
+  | "wugen"
+  | "taojiao"
+  | "chiyan"
+  | "chensha";
+
+export type DemoGardenPlot = {
+  herbId: DemoGardenHerbId | null;
+  years: number;
+  plantedAtMonth?: number;
+};
+
+export type DemoCraftedEquipment = {
+  id: string;
+  name: string;
+  category: "weapon" | "armor";
+  form: string;
+  rank: "黄" | "玄" | "地" | "天" | "仙";
+  stage: 0 | 1 | 2 | 3 | 4;
+  lingyun: number;
+  effect: string;
+};
+
+export type DemoExpansionState = {
+  profile: DemoPlayerProfile;
+  story: {
+    completed: number[];
+    tracked: number | null;
+  };
+  garden: {
+    fieldLevel: 1 | 2;
+    formationLevel: 0 | 1;
+    xiaoxianCare: boolean;
+    plots: DemoGardenPlot[];
+  };
+  herbStock: Record<DemoGardenHerbId, number>;
+  pillStock: Record<string, number>;
+  materialStock: Record<string, number>;
+  craftedEquipment: DemoCraftedEquipment[];
+};
+
 export type DemoSaveState = {
   year: number;
   month: number;
@@ -132,6 +194,7 @@ export type DemoSaveState = {
   flags: Record<string, boolean>;
   battleStats: DemoBattleStats;
   eventLog: DemoEventLogEntry[];
+  expansion: DemoExpansionState;
 };
 
 export type DemoSaveRecord = {
@@ -580,6 +643,69 @@ export const defaultDemoState: DemoSaveState = {
       text: "你在鹿石宗醒来。鹿真人说你身无灵根，却能化去灵气，并留下了一门看似寻常的鹿花诀。",
     },
   ],
+  expansion: {
+    profile: {
+      created: false,
+      name: "异世来客",
+      gender: "male",
+      outfit: "jinzhuang",
+      difficulty: "normal",
+      fate: "genius",
+      perks: [],
+      attributes: {
+        aptitude: 17,
+        comprehension: 17,
+        spirit: 17,
+        speed: 17,
+        fortune: 17,
+      },
+    },
+    story: {
+      completed: [],
+      tracked: 1,
+    },
+    garden: {
+      fieldLevel: 1,
+      formationLevel: 0,
+      xiaoxianCare: false,
+      plots: Array.from({ length: 20 }, () => ({ herbId: null, years: 0, plantedAtMonth: 0 })),
+    },
+    herbStock: {
+      juqi: 6,
+      ningxue: 5,
+      huoli: 5,
+      shizhi: 4,
+      wugen: 5,
+      taojiao: 3,
+      chiyan: 3,
+      chensha: 5,
+    },
+    pillStock: {
+      huayu: 2,
+    },
+    materialStock: {
+      crudeIron: 8,
+      mouseBone: 6,
+      coldIron: 4,
+      silver: 3,
+      flameIron: 3,
+      spiritCrystal: 2,
+      resonanceCrystal: 1,
+      ember: 3,
+    },
+    craftedEquipment: [
+      {
+        id: "starter-sword",
+        name: "青锋剑",
+        category: "weapon",
+        form: "飞剑",
+        rank: "黄",
+        stage: 0,
+        lingyun: 15,
+        effect: "锋锐：穿透 +5%",
+      },
+    ],
+  },
 };
 
 const MAX_LOG_ENTRIES = 16;
@@ -699,6 +825,137 @@ function normalizeLearnedArts(learnedArts: string[]) {
 
 function isOneOf<const T extends readonly string[]>(value: unknown, allowed: T): value is T[number] {
   return typeof value === "string" && allowed.includes(value);
+}
+
+const genderIds = ["male", "female"] as const;
+const outfitIds = ["qingshan", "daopao", "jinzhuang", "xianpao"] as const;
+const difficultyIds = ["easy", "normal", "hard", "extreme"] as const;
+const fateIds = ["genius", "talented", "average", "mortal"] as const;
+const gardenHerbIds = [
+  "juqi",
+  "ningxue",
+  "huoli",
+  "shizhi",
+  "wugen",
+  "taojiao",
+  "chiyan",
+  "chensha",
+] as const;
+const equipmentRanks = ["黄", "玄", "地", "天", "仙"] as const;
+
+function normalizeCountRecord(
+  value: Record<string, unknown> | undefined,
+  defaults: Record<string, number>,
+) {
+  const next = { ...defaults };
+  for (const [key, rawCount] of Object.entries(value ?? {})) {
+    if (typeof rawCount === "number" && Number.isFinite(rawCount)) {
+      next[key] = clamp(Math.round(rawCount), 0, 9999);
+    }
+  }
+  return next;
+}
+
+export function normalizeExpansionState(
+  expansion: Partial<DemoExpansionState> | undefined,
+): DemoExpansionState {
+  const defaults = defaultDemoState.expansion;
+  const rawProfile = expansion?.profile as Partial<DemoPlayerProfile> | undefined;
+  const rawAttributes = rawProfile?.attributes as Partial<DemoPlayerProfile["attributes"]> | undefined;
+  const rawPlots = Array.isArray(expansion?.garden?.plots) ? expansion.garden.plots : [];
+  const rawEquipment = Array.isArray(expansion?.craftedEquipment)
+    ? expansion.craftedEquipment
+    : defaults.craftedEquipment;
+
+  const completed = Array.from(
+    new Set(
+      (expansion?.story?.completed ?? [])
+        .filter((eventId): eventId is number => Number.isInteger(eventId))
+        .map((eventId) => clamp(eventId, 1, 29)),
+    ),
+  ).sort((left, right) => left - right);
+  const trackedValue = expansion?.story?.tracked;
+  const tracked =
+    trackedValue === null ||
+    (typeof trackedValue === "number" && Number.isInteger(trackedValue) && trackedValue >= 1 && trackedValue <= 29)
+      ? trackedValue
+      : defaults.story.tracked;
+
+  return {
+    profile: {
+      created: rawProfile?.created === true,
+      name:
+        typeof rawProfile?.name === "string" && rawProfile.name.trim()
+          ? rawProfile.name.trim().slice(0, 6)
+          : defaults.profile.name,
+      gender: isOneOf(rawProfile?.gender, genderIds) ? rawProfile.gender : defaults.profile.gender,
+      outfit: isOneOf(rawProfile?.outfit, outfitIds) ? rawProfile.outfit : defaults.profile.outfit,
+      difficulty: isOneOf(rawProfile?.difficulty, difficultyIds)
+        ? rawProfile.difficulty
+        : defaults.profile.difficulty,
+      fate: isOneOf(rawProfile?.fate, fateIds) ? rawProfile.fate : defaults.profile.fate,
+      perks: Array.isArray(rawProfile?.perks)
+        ? rawProfile.perks.filter((perk): perk is string => typeof perk === "string").slice(0, 30)
+        : defaults.profile.perks,
+      attributes: {
+        aptitude: clamp(Math.round(rawAttributes?.aptitude ?? defaults.profile.attributes.aptitude), 5, 80),
+        comprehension: clamp(
+          Math.round(rawAttributes?.comprehension ?? defaults.profile.attributes.comprehension),
+          5,
+          80,
+        ),
+        spirit: clamp(Math.round(rawAttributes?.spirit ?? defaults.profile.attributes.spirit), 5, 80),
+        speed: clamp(Math.round(rawAttributes?.speed ?? defaults.profile.attributes.speed), 5, 80),
+        fortune: clamp(Math.round(rawAttributes?.fortune ?? defaults.profile.attributes.fortune), 5, 80),
+      },
+    },
+    story: {
+      completed,
+      tracked,
+    },
+    garden: {
+      fieldLevel: expansion?.garden?.fieldLevel === 2 ? 2 : 1,
+      formationLevel: expansion?.garden?.formationLevel === 1 ? 1 : 0,
+      xiaoxianCare: expansion?.garden?.xiaoxianCare === true,
+      plots: Array.from({ length: 20 }, (_, index) => {
+        const plot = rawPlots[index] as Partial<DemoGardenPlot> | undefined;
+        return {
+          herbId: isOneOf(plot?.herbId, gardenHerbIds) ? plot.herbId : null,
+          years: clamp(Number.isFinite(plot?.years) ? Number(plot?.years) : 0, 0, 100000),
+          plantedAtMonth: clamp(
+            Number.isFinite(plot?.plantedAtMonth) ? Number(plot?.plantedAtMonth) : 0,
+            0,
+            100000,
+          ),
+        };
+      }),
+    },
+    herbStock: normalizeCountRecord(
+      expansion?.herbStock as Record<string, unknown> | undefined,
+      defaults.herbStock,
+    ) as Record<DemoGardenHerbId, number>,
+    pillStock: normalizeCountRecord(
+      expansion?.pillStock as Record<string, unknown> | undefined,
+      defaults.pillStock,
+    ),
+    materialStock: normalizeCountRecord(
+      expansion?.materialStock as Record<string, unknown> | undefined,
+      defaults.materialStock,
+    ),
+    craftedEquipment: rawEquipment
+      .filter((item): item is DemoCraftedEquipment => Boolean(item && typeof item === "object"))
+      .slice(0, 40)
+      .map((item, index) => ({
+        id: typeof item.id === "string" ? item.id.slice(0, 80) : `equipment-${index + 1}`,
+        name: typeof item.name === "string" ? item.name.slice(0, 20) : "无名法器",
+        category: item.category === "armor" ? "armor" : "weapon",
+        form: typeof item.form === "string" ? item.form.slice(0, 20) : "法器",
+        rank: isOneOf(item.rank, equipmentRanks) ? item.rank : "黄",
+        stage: clamp(Math.round(item.stage ?? 0), 0, 4) as 0 | 1 | 2 | 3 | 4,
+        lingyun: clamp(Math.round(item.lingyun ?? 10), 0, 9999),
+        effect: typeof item.effect === "string" ? item.effect.slice(0, 120) : "灵韵未显",
+      })),
+  };
 }
 
 function normalizeLoadout(loadout: Partial<DemoLoadout> | undefined): DemoLoadout {
@@ -839,6 +1096,19 @@ function completeEvent(rawState: DemoSaveState): DemoSaveState {
       ),
       { characterId: "douran", name: "豆髯道人", bond: 18 },
     );
+    next = {
+      ...next,
+      expansion: {
+        ...next.expansion,
+        story: {
+          ...next.expansion.story,
+          completed: Array.from(new Set([...next.expansion.story.completed, 10])).sort(
+            (left, right) => left - right,
+          ),
+          tracked: next.expansion.story.tracked === 10 ? 11 : next.expansion.story.tracked,
+        },
+      },
+    };
   }
 
   if (grantReward && activeEvent.id === "wish_eater_bridge") {
@@ -864,6 +1134,19 @@ function completeEvent(rawState: DemoSaveState): DemoSaveState {
       ),
       { characterId: "xiaolu", name: "小鹿", bond: 16 },
     );
+    next = {
+      ...next,
+      expansion: {
+        ...next.expansion,
+        story: {
+          ...next.expansion.story,
+          completed: Array.from(new Set([...next.expansion.story.completed, 11])).sort(
+            (left, right) => left - right,
+          ),
+          tracked: next.expansion.story.tracked === 11 ? 12 : next.expansion.story.tracked,
+        },
+      },
+    };
   }
 
   return appendLog(
@@ -932,6 +1215,15 @@ function chooseEventOption(rawState: DemoSaveState, action: DemoEventChoiceActio
 }
 
 export function normalizeDemoState(state: Partial<DemoSaveState> | DemoSaveState): DemoSaveState {
+  const expansion = normalizeExpansionState(state.expansion);
+  if (state.completedEvents?.includes("mouse_cave_treasure") && !expansion.story.completed.includes(10)) {
+    expansion.story.completed.push(10);
+  }
+  if (state.completedEvents?.includes("wish_eater_bridge") && !expansion.story.completed.includes(11)) {
+    expansion.story.completed.push(11);
+  }
+  expansion.story.completed.sort((left, right) => left - right);
+
   return {
     ...defaultDemoState,
     ...state,
@@ -973,7 +1265,37 @@ export function normalizeDemoState(state: Partial<DemoSaveState> | DemoSaveState
     },
     relationships: state.relationships ?? defaultDemoState.relationships,
     eventLog: state.eventLog ?? defaultDemoState.eventLog,
+    expansion,
   };
+}
+
+export function applyExpansionUpdate(
+  rawState: DemoSaveState,
+  expansion: Partial<DemoExpansionState>,
+  elapsedMonths = 0,
+  activity?: { title: string; text: string },
+): DemoSaveState {
+  let next: DemoSaveState = {
+    ...normalizeDemoState(rawState),
+    expansion: normalizeExpansionState(expansion),
+  };
+
+  for (let month = 0; month < clamp(Math.round(elapsedMonths), 0, 1200); month += 1) {
+    next = advanceMonth(next);
+  }
+
+  if (next.expansion.story.completed.includes(28) && next.cultivation.level !== "筑基") {
+    next = {
+      ...next,
+      cultivation: {
+        ...next.cultivation,
+        level: "筑基",
+        realmProgress: 0,
+      },
+    };
+  }
+
+  return activity ? appendLog(next, activity.title.slice(0, 40), activity.text.slice(0, 280)) : next;
 }
 
 function changeScene(state: DemoSaveState, scene: DemoScene): DemoSaveState {

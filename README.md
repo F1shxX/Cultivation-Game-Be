@@ -6,7 +6,9 @@ Current backend coverage:
 
 - Supabase connection health checks
 - Demo save creation/loading/reset
-- Demo actions for cultivation, alchemy, planting, forging, and the first mouse cave battle stub
+- Demo actions for home scenes, cultivation, loadouts, dialogue events, and combat results
+- Expansion saves for character creation, 29-event progress, planting, alchemy, and forging
+- Complete mouse cave and wish-eater event progression
 
 ## Setup
 
@@ -48,4 +50,5 @@ Demo endpoints:
 
 - `GET /demo/save`
 - `POST /demo/action` with `{ "action": "cultivate" }`
+- `PUT /demo/expansion` with `{ "expansion": {}, "elapsedMonths": 0 }`
 - `POST /demo/reset`

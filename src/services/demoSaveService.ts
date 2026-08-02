@@ -1,10 +1,12 @@
 import { config } from "../config/env.js";
 import {
+  applyExpansionUpdate,
   applyDemoAction,
   defaultDemoState,
   normalizeDemoState,
   type DemoAction,
   type DemoActionContext,
+  type DemoExpansionState,
   type DemoSaveRecord,
   type DemoSaveState,
 } from "../domain/demoSave.js";
@@ -81,5 +83,16 @@ export async function performDemoAction(
 ): Promise<DemoSaveRecord> {
   const save = await getDemoSave(playerId);
   const nextState = applyDemoAction(save.state, action, context);
+  return upsertDemoSave(nextState, playerId);
+}
+
+export async function updateDemoExpansion(
+  expansion: Partial<DemoExpansionState>,
+  elapsedMonths = 0,
+  activity?: { title: string; text: string },
+  playerId = config.demoPlayerId,
+): Promise<DemoSaveRecord> {
+  const save = await getDemoSave(playerId);
+  const nextState = applyExpansionUpdate(save.state, expansion, elapsedMonths, activity);
   return upsertDemoSave(nextState, playerId);
 }

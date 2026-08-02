@@ -1,7 +1,12 @@
 import { Router } from "express";
 import { z } from "zod";
 import { demoActions, demoEventDefinitions } from "../domain/demoSave.js";
-import { performDemoAction, resetDemoSave, getDemoSave } from "../services/demoSaveService.js";
+import {
+  performDemoAction,
+  resetDemoSave,
+  getDemoSave,
+  updateDemoExpansion,
+} from "../services/demoSaveService.js";
 
 export const demoRouter = Router();
 
@@ -19,6 +24,17 @@ const battleResultSchema = z.object({
 const actionSchema = z.object({
   action: z.enum(demoActions),
   battleResult: battleResultSchema.optional(),
+});
+
+const expansionSchema = z.object({
+  expansion: z.unknown(),
+  elapsedMonths: z.number().int().min(0).max(1200).optional(),
+  activity: z
+    .object({
+      title: z.string().min(1).max(40),
+      text: z.string().min(1).max(280),
+    })
+    .optional(),
 });
 
 function sendRouteError(res: import("express").Response, error: unknown) {
@@ -80,6 +96,30 @@ demoRouter.post("/action", async (req, res) => {
       ok: true,
       save,
     });
+  } catch (error) {
+    sendRouteError(res, error);
+  }
+});
+
+demoRouter.put("/expansion", async (req, res) => {
+  const result = expansionSchema.safeParse(req.body);
+  if (!result.success || !result.data.expansion || typeof result.data.expansion !== "object") {
+    res.status(400).json({
+      ok: false,
+      message: result.success
+        ? "Expansion state must be an object"
+        : result.error.issues.map((issue) => issue.message).join("; "),
+    });
+    return;
+  }
+
+  try {
+    const save = await updateDemoExpansion(
+      result.data.expansion,
+      result.data.elapsedMonths,
+      result.data.activity,
+    );
+    res.json({ ok: true, save });
   } catch (error) {
     sendRouteError(res, error);
   }
