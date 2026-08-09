@@ -11,7 +11,7 @@ export type DemoScene =
   | "spirit_garden"
   | "teleport_array";
 
-export type DemoEventId = "mouse_cave_treasure" | "wish_eater_bridge";
+export type DemoEventId = "intro_lushi" | "mouse_cave_treasure" | "wish_eater_bridge";
 
 export type DemoEventChoiceAction =
   | "event_choice:mouse_joke"
@@ -67,6 +67,36 @@ export type DemoRelationship = {
   characterId: DemoCharacterId;
   name: string;
   bond: number;
+};
+
+export type DemoHandnoteNpcId = "lu-zhenren" | "xiao-zhang" | "xiaoxian";
+
+export type DemoHandnoteReward =
+  | { type: "herb"; herbId: DemoGardenHerbId; amount: number }
+  | { type: "pill"; pillId: string; amount: number }
+  | { type: "material"; materialId: string; amount: number };
+
+export type DemoHandnoteEntry = {
+  id: string;
+  npcId: DemoHandnoteNpcId;
+  title: string;
+  text: string;
+  flavorOnly: boolean;
+  reward: DemoHandnoteReward | null;
+  claimed: boolean;
+  createdAt: {
+    year: number;
+    month: number;
+  };
+  expiresAt: {
+    year: number;
+    month: number;
+  };
+};
+
+export type DemoHandnoteState = {
+  lastRefreshYear: number;
+  entries: DemoHandnoteEntry[];
 };
 
 export type DemoEventLogEntry = {
@@ -166,6 +196,7 @@ export type DemoExpansionState = {
     completed: number[];
     tracked: number | null;
   };
+  handnotes: DemoHandnoteState;
   garden: {
     fieldLevel: 1 | 2;
     formationLevel: 0 | 1;
@@ -207,6 +238,10 @@ export type DemoSaveRecord = {
 type DemoEventNodeMode = "dialogue" | "choice" | "battle" | "reward";
 
 type DemoEventVisualStage =
+  | "intro_dormitory"
+  | "intro_plaza"
+  | "intro_hall"
+  | "intro_reward"
   | "teleport_departure"
   | "mouse_cave"
   | "mouse_skirmish"
@@ -236,6 +271,7 @@ type DemoEventNode = {
   text: string;
   mode: DemoEventNodeMode;
   visualStage: DemoEventVisualStage;
+  scene?: DemoScene;
   choices?: DemoEventChoice[];
 };
 
@@ -264,6 +300,54 @@ export const sceneNames: Record<DemoScene, string> = {
 };
 
 export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
+  intro_lushi: {
+    id: "intro_lushi",
+    title: "初入鹿石宗",
+    triggerYear: 1,
+    category: "开局主线",
+    location: "宿舍 → 广场 → 大厅",
+    participants: ["主角", "小娴", "小张", "鹿真人"],
+    summary: "你被带回鹿石宗，先在宗门里认路，再从鹿真人手中接过入门功法。",
+    rewardText: "鹿花诀·炼气篇、金芒诀·炼气篇、焰心诀·炼气篇",
+    nodes: [
+      {
+        id: "wake-up",
+        title: "宿舍醒来",
+        speaker: "小娴",
+        text: "醒了？别急着起身，你刚回宗门，先认认床和门。鹿真人说了，你的路和旁人不太一样，今天开始先把宗门转熟。",
+        mode: "dialogue",
+        visualStage: "intro_dormitory",
+        scene: "dormitory",
+      },
+      {
+        id: "plaza-walk",
+        title: "广场认路",
+        speaker: "小张",
+        text: "跟紧点，别一会儿又走丢了。这里是广场，左边去炼器坊，右边去炼丹房，后山那边先别乱钻。你要真迷路了，就抬头找传送阵。",
+        mode: "dialogue",
+        visualStage: "intro_plaza",
+        scene: "plaza",
+      },
+      {
+        id: "hall-meeting",
+        title: "大殿初见",
+        speaker: "鹿真人",
+        text: "身无灵根，却能化灵为己用。倒是少见。你先收下这三本入门功法，照着练。路要一步一步走，不必急着问天。",
+        mode: "dialogue",
+        visualStage: "intro_hall",
+        scene: "hall",
+      },
+      {
+        id: "manual-reward",
+        title: "入门功法",
+        speaker: "小娴",
+        text: "东西已经都给你整理好了。鹿花诀主修身骨，金芒诀适合破敌，焰心诀偏向爆发。收好，别再让小张说你是空手入门。",
+        mode: "reward",
+        visualStage: "intro_reward",
+        scene: "hall",
+      },
+    ],
+  },
   mouse_cave_treasure: {
     id: "mouse_cave_treasure",
     title: "山鼠洞寻宝",
@@ -471,6 +555,7 @@ const sceneActions = [
 ] as const;
 
 const eventStartActions = [
+  "start_event:intro_lushi",
   "start_event:mouse_cave_treasure",
   "start_event:wish_eater_bridge",
 ] as const;
@@ -570,6 +655,231 @@ export type DemoActionContext = {
   battleResult?: DemoBattleResult;
 };
 
+function addMonthsToDate(date: { year: number; month: number }, months: number) {
+  let year = date.year;
+  let month = date.month + months;
+  while (month > 12) {
+    month -= 12;
+    year += 1;
+  }
+  while (month < 1) {
+    month += 12;
+    year -= 1;
+  }
+  return { year, month };
+}
+
+const handnoteNpcNames: Record<DemoHandnoteNpcId, string> = {
+  "lu-zhenren": "鹿真人",
+  "xiao-zhang": "小张",
+  xiaoxian: "小娴",
+};
+
+const handnoteTemplates: Record<
+  DemoHandnoteNpcId,
+  Array<{
+    title: string;
+    text: string;
+    flavorOnly: boolean;
+    reward: DemoHandnoteReward | null;
+  }>
+> = {
+  "lu-zhenren": [
+    {
+      title: "云游札记",
+      text: "门里的人常问我为什么总不在宗门。其实答案很简单，路要自己走，门只负责把路摆出来。",
+      flavorOnly: true,
+      reward: null,
+    },
+    {
+      title: "灵髓换算",
+      text: "灵髓这东西，在这边叫珍宝，在那边就只是另一种记法。你若真想回头看，先把本事练够。",
+      flavorOnly: false,
+      reward: { type: "pill", pillId: "huayu", amount: 1 },
+    },
+  ],
+  "xiao-zhang": [
+    {
+      title: "装腔日记",
+      text: "本大师兄今天又被师妹拆穿了一回。无妨，先把话说满，万一真成了呢。",
+      flavorOnly: true,
+      reward: null,
+    },
+    {
+      title: "炼器记录",
+      text: "捡来的铁料别急着扔，炉火一过，很多破烂都能变成能卖钱的东西。",
+      flavorOnly: false,
+      reward: { type: "material", materialId: "crudeIron", amount: 2 },
+    },
+  ],
+  xiaoxian: [
+    {
+      title: "茶盏旁",
+      text: "你刚来时什么都不记得，所以我先给你倒了杯茶。宗门里不缺规矩，缺的是愿意把人留下来的人。",
+      flavorOnly: true,
+      reward: null,
+    },
+    {
+      title: "药炉边角",
+      text: "若是这几天累了，就去灵植园走走。草木长得慢，心也会慢下来。",
+      flavorOnly: false,
+      reward: { type: "herb", herbId: "juqi", amount: 3 },
+    },
+  ],
+};
+
+const handnoteNpcIds = ["lu-zhenren", "xiao-zhang", "xiaoxian"] as const;
+
+function normalizeHandnoteDate(
+  value: Partial<{ year: number; month: number }> | undefined,
+  fallback: { year: number; month: number },
+) {
+  return {
+    year:
+      typeof value?.year === "number" && Number.isFinite(value.year)
+        ? clamp(Math.round(value.year), 1, 9999)
+        : clamp(Math.round(fallback.year), 1, 9999),
+    month:
+      typeof value?.month === "number" && Number.isFinite(value.month)
+        ? clamp(Math.round(value.month), 1, 12)
+        : clamp(Math.round(fallback.month), 1, 12),
+  };
+}
+
+function normalizeHandnoteReward(reward: DemoHandnoteReward | null | undefined): DemoHandnoteReward | null {
+  if (!reward) return null;
+  const amount = clamp(Math.round(Number(reward.amount ?? 0)), 1, 999);
+
+  if (reward.type === "herb") {
+    return isOneOf(reward.herbId, gardenHerbIds) ? { type: "herb", herbId: reward.herbId, amount } : null;
+  }
+
+  if (reward.type === "pill") {
+    const pillId = typeof reward.pillId === "string" ? reward.pillId.trim() : "";
+    return pillId ? { type: "pill", pillId: pillId.slice(0, 32), amount } : null;
+  }
+
+  if (reward.type === "material") {
+    const materialId = typeof reward.materialId === "string" ? reward.materialId.trim() : "";
+    return materialId ? { type: "material", materialId: materialId.slice(0, 32), amount } : null;
+  }
+
+  return null;
+}
+
+function normalizeHandnoteEntry(entry: Partial<DemoHandnoteEntry> | undefined): DemoHandnoteEntry | null {
+  if (!entry || typeof entry !== "object") return null;
+  if (!isOneOf(entry.npcId, handnoteNpcIds)) return null;
+
+  const createdAt = normalizeHandnoteDate(entry.createdAt, { year: 1, month: 1 });
+  const expiresAt = normalizeHandnoteDate(entry.expiresAt, addMonthsToDate(createdAt, 6));
+
+  return {
+    id: typeof entry.id === "string" && entry.id.trim() ? entry.id.trim().slice(0, 64) : `handnote-${entry.npcId}`,
+    npcId: entry.npcId,
+    title:
+      typeof entry.title === "string" && entry.title.trim()
+        ? entry.title.trim().slice(0, 40)
+        : handnoteNpcNames[entry.npcId],
+    text:
+      typeof entry.text === "string" && entry.text.trim()
+        ? entry.text.trim().slice(0, 280)
+        : "这一页手记暂时空着。",
+    flavorOnly: entry.flavorOnly === true,
+    reward: normalizeHandnoteReward(entry.reward as DemoHandnoteReward | null | undefined),
+    claimed: entry.claimed === true,
+    createdAt,
+    expiresAt,
+  };
+}
+
+function normalizeHandnoteState(
+  raw: Partial<DemoHandnoteState> | undefined,
+  fallback: DemoHandnoteState,
+): DemoHandnoteState {
+  const entries = Array.isArray(raw?.entries)
+    ? raw.entries
+        .map((entry) => normalizeHandnoteEntry(entry))
+        .filter((entry): entry is DemoHandnoteEntry => Boolean(entry))
+    : fallback.entries;
+
+  const dedupedEntries = Array.from(new Map(entries.map((entry) => [entry.id, entry])).values());
+
+  return {
+    lastRefreshYear:
+      typeof raw?.lastRefreshYear === "number" && Number.isFinite(raw.lastRefreshYear)
+        ? clamp(Math.round(raw.lastRefreshYear), 1, 9999)
+        : fallback.lastRefreshYear,
+    entries: dedupedEntries.length > 0 ? dedupedEntries : fallback.entries,
+  };
+}
+
+function createHandnoteEntry(
+  npcId: DemoHandnoteNpcId,
+  templateIndex: number,
+  template: (typeof handnoteTemplates)[DemoHandnoteNpcId][number],
+  year: number,
+  month: number,
+) {
+  return {
+    id: `${year}-${month}-${npcId}-${templateIndex}`,
+    npcId,
+    title: template.title,
+    text: template.text,
+    flavorOnly: template.flavorOnly,
+    reward: template.reward,
+    claimed: false,
+    createdAt: { year, month },
+    expiresAt: addMonthsToDate({ year, month }, 6),
+  } satisfies DemoHandnoteEntry;
+}
+
+function createStarterHandnotes(): DemoHandnoteEntry[] {
+  return (
+    [
+      ["lu-zhenren", 0],
+      ["xiao-zhang", 0],
+      ["xiaoxian", 0],
+    ] as const
+  ).map(([npcId, templateIndex]) =>
+    createHandnoteEntry(npcId, templateIndex, handnoteTemplates[npcId][templateIndex], 1, 1),
+  );
+}
+
+function createAnnualHandnotes(year: number, month: number): DemoHandnoteEntry[] {
+  const npcOrder: DemoHandnoteNpcId[] = ["lu-zhenren", "xiao-zhang", "xiaoxian"];
+  const count = 1 + ((year + month) % 2);
+  const offset = (year + month) % npcOrder.length;
+  return Array.from({ length: count }, (_, index) => {
+    const npcId = npcOrder[(offset + index) % npcOrder.length];
+    const templates = handnoteTemplates[npcId];
+    const templateIndex = (year + month + index) % templates.length;
+    return createHandnoteEntry(npcId, templateIndex, templates[templateIndex], year, month);
+  });
+}
+
+function syncHandnoteState(state: DemoSaveState): DemoSaveState {
+  const current = state.expansion.handnotes;
+  if (!current) return state;
+  if (current.lastRefreshYear >= state.year) return state;
+
+  const nextEntries = [...current.entries];
+  for (let year = current.lastRefreshYear + 1; year <= state.year; year += 1) {
+    nextEntries.push(...createAnnualHandnotes(year, state.month));
+  }
+
+  return {
+    ...state,
+    expansion: {
+      ...state.expansion,
+      handnotes: {
+        lastRefreshYear: state.year,
+        entries: nextEntries,
+      },
+    },
+  };
+}
+
 export const defaultDemoState: DemoSaveState = {
   year: 1,
   month: 1,
@@ -664,6 +974,10 @@ export const defaultDemoState: DemoSaveState = {
       completed: [],
       tracked: 1,
     },
+    handnotes: {
+      lastRefreshYear: 1,
+      entries: createStarterHandnotes(),
+    },
     garden: {
       fieldLevel: 1,
       formationLevel: 0,
@@ -740,11 +1054,11 @@ function appendLog(state: DemoSaveState, title: string, text: string): DemoSaveS
 function advanceMonth(state: DemoSaveState): DemoSaveState {
   const nextMonth = state.month >= 12 ? 1 : state.month + 1;
   const nextYear = state.month >= 12 ? state.year + 1 : state.year;
-  return {
+  return syncHandnoteState({
     ...state,
     year: nextYear,
     month: nextMonth,
-  };
+  });
 }
 
 function addBond(
@@ -862,6 +1176,7 @@ export function normalizeExpansionState(
   const defaults = defaultDemoState.expansion;
   const rawProfile = expansion?.profile as Partial<DemoPlayerProfile> | undefined;
   const rawAttributes = rawProfile?.attributes as Partial<DemoPlayerProfile["attributes"]> | undefined;
+  const rawHandnotes = expansion?.handnotes as Partial<DemoHandnoteState> | undefined;
   const rawPlots = Array.isArray(expansion?.garden?.plots) ? expansion.garden.plots : [];
   const rawEquipment = Array.isArray(expansion?.craftedEquipment)
     ? expansion.craftedEquipment
@@ -913,6 +1228,7 @@ export function normalizeExpansionState(
       completed,
       tracked,
     },
+    handnotes: normalizeHandnoteState(rawHandnotes, defaults.handnotes),
     garden: {
       fieldLevel: expansion?.garden?.fieldLevel === 2 ? 2 : 1,
       formationLevel: expansion?.garden?.formationLevel === 1 ? 1 : 0,
@@ -988,6 +1304,7 @@ function eventNodeLocation(node: DemoEventNode): DemoLocation {
 }
 
 function eventScene(eventId: DemoEventId): DemoScene {
+  if (eventId === "intro_lushi") return "dormitory";
   return eventId === "mouse_cave_treasure" ? "teleport_array" : "plaza";
 }
 
@@ -1002,7 +1319,7 @@ function setEventNode(state: DemoSaveState, nodeIndex: number): DemoSaveState {
     {
       ...state,
       location: eventNodeLocation(node),
-      scene: eventScene(state.activeEvent.id),
+      scene: node.scene ?? eventScene(state.activeEvent.id),
       activeEvent: {
         ...state.activeEvent,
         nodeIndex,
@@ -1031,7 +1348,7 @@ function startEvent(state: DemoSaveState, eventId: DemoEventId): DemoSaveState {
     {
       ...state,
       location: eventNodeLocation(firstNode),
-      scene: eventScene(eventId),
+      scene: firstNode.scene ?? eventScene(eventId),
       activeEvent: {
         id: eventId,
         nodeIndex: 0,
@@ -1067,8 +1384,43 @@ function completeEvent(rawState: DemoSaveState): DemoSaveState {
     activeEvent: null,
     completedEvents,
     location: "home",
-    scene: activeEvent.id === "mouse_cave_treasure" ? "teleport_array" : "plaza",
+    scene:
+      activeEvent.id === "intro_lushi"
+        ? "plaza"
+        : activeEvent.id === "mouse_cave_treasure"
+          ? "teleport_array"
+          : "plaza",
   };
+
+  if (grantReward && activeEvent.id === "intro_lushi") {
+    next = {
+      ...next,
+      cultivation: {
+        ...next.cultivation,
+        learnedArts: normalizeLearnedArts([
+          ...next.cultivation.learnedArts,
+          "楣胯姳璇€",
+          "閲戣姃璇€",
+          "鐒板績璇€",
+        ]),
+      },
+      flags: {
+        ...next.flags,
+        openingSeen: true,
+        introLushiCompleted: true,
+      },
+      expansion: {
+        ...next.expansion,
+        story: {
+          ...next.expansion.story,
+          completed: Array.from(new Set([...next.expansion.story.completed, 1])).sort(
+            (left, right) => left - right,
+          ),
+          tracked: next.expansion.story.tracked === 1 ? 2 : next.expansion.story.tracked,
+        },
+      },
+    };
+  }
 
   if (grantReward && activeEvent.id === "mouse_cave_treasure") {
     next = upsertRelationship(
@@ -1216,6 +1568,9 @@ function chooseEventOption(rawState: DemoSaveState, action: DemoEventChoiceActio
 
 export function normalizeDemoState(state: Partial<DemoSaveState> | DemoSaveState): DemoSaveState {
   const expansion = normalizeExpansionState(state.expansion);
+  if (state.completedEvents?.includes("intro_lushi") && !expansion.story.completed.includes(1)) {
+    expansion.story.completed.push(1);
+  }
   if (state.completedEvents?.includes("mouse_cave_treasure") && !expansion.story.completed.includes(10)) {
     expansion.story.completed.push(10);
   }
@@ -1224,7 +1579,7 @@ export function normalizeDemoState(state: Partial<DemoSaveState> | DemoSaveState
   }
   expansion.story.completed.sort((left, right) => left - right);
 
-  return {
+  return syncHandnoteState({
     ...defaultDemoState,
     ...state,
     scene: state.scene ?? "plaza",
@@ -1266,7 +1621,7 @@ export function normalizeDemoState(state: Partial<DemoSaveState> | DemoSaveState
     relationships: state.relationships ?? defaultDemoState.relationships,
     eventLog: state.eventLog ?? defaultDemoState.eventLog,
     expansion,
-  };
+  });
 }
 
 export function applyExpansionUpdate(

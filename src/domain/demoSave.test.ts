@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { applyDemoAction, defaultDemoState, type DemoSaveState } from "./demoSave.js";
+import {
+  applyDemoAction,
+  applyExpansionUpdate,
+  defaultDemoState,
+  normalizeDemoState,
+  type DemoSaveState,
+} from "./demoSave.js";
 
 function stateAt(scene: DemoSaveState["scene"]): DemoSaveState {
   return {
@@ -40,4 +46,61 @@ test("selecting the current scene does not add a duplicate travel log", () => {
 
   assert.deepEqual(next, current);
   assert.equal(next.eventLog.length, 0);
+});
+
+test("intro_lushi advances through the opening scene chain", () => {
+  let state = applyDemoAction(defaultDemoState, "start_event:intro_lushi");
+
+  assert.equal(state.activeEvent?.id, "intro_lushi");
+  assert.equal(state.scene, "dormitory");
+
+  state = applyDemoAction(state, "advance_event");
+  assert.equal(state.activeEvent?.nodeIndex, 1);
+  assert.equal(state.scene, "plaza");
+
+  state = applyDemoAction(state, "advance_event");
+  assert.equal(state.activeEvent?.nodeIndex, 2);
+  assert.equal(state.scene, "hall");
+
+  state = applyDemoAction(state, "advance_event");
+  assert.equal(state.activeEvent?.nodeIndex, 3);
+  assert.equal(state.scene, "hall");
+
+  state = applyDemoAction(state, "advance_event");
+  assert.equal(state.activeEvent, null);
+  assert.equal(state.scene, "plaza");
+  assert.equal(state.completedEvents.includes("intro_lushi"), true);
+  assert.equal(state.expansion.story.completed.includes(1), true);
+  assert.equal(state.flags.introLushiCompleted, true);
+});
+
+test("claimed handnotes survive a normalized expansion update", () => {
+  const claimedState = normalizeDemoState({
+    ...defaultDemoState,
+    expansion: {
+      ...defaultDemoState.expansion,
+      handnotes: {
+        ...defaultDemoState.expansion.handnotes,
+        entries: defaultDemoState.expansion.handnotes.entries.map((entry, index) =>
+          index === 0 ? { ...entry, claimed: true } : entry,
+        ),
+      },
+    },
+  });
+
+  const next = applyExpansionUpdate(claimedState, claimedState.expansion);
+
+  assert.equal(next.expansion.handnotes.entries[0].claimed, true);
+  assert.equal(next.expansion.handnotes.entries[0].title.length > 0, true);
+});
+
+test("handnotes expire six months after creation", () => {
+  const next = applyExpansionUpdate(defaultDemoState, defaultDemoState.expansion, 12);
+  const refreshedEntry = next.expansion.handnotes.entries.find(
+    (entry) => entry.createdAt.year === 2 && entry.createdAt.month === 1,
+  );
+
+  assert.ok(refreshedEntry);
+  assert.deepEqual(refreshedEntry?.expiresAt, { year: 2, month: 7 });
+  assert.deepEqual(next.expansion.handnotes.entries[0].expiresAt, { year: 1, month: 7 });
 });
