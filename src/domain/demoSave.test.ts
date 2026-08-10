@@ -28,7 +28,7 @@ test("a destination cannot travel directly to another destination", () => {
   const next = applyDemoAction(stateAt("dormitory"), "change_scene:forge");
 
   assert.equal(next.scene, "dormitory");
-  assert.equal(next.eventLog.at(-1)?.title, "需先返回广场");
+  assert.equal(next.eventLog.at(-1)?.title, "需要先返回广场");
   assert.match(next.eventLog.at(-1)?.text ?? "", /必须先返回广场/);
 });
 
@@ -53,17 +53,33 @@ test("intro_lushi advances through the opening scene chain", () => {
 
   assert.equal(state.activeEvent?.id, "intro_lushi");
   assert.equal(state.scene, "dormitory");
+  assert.equal(state.activeEvent?.awaitingScene, null);
 
   state = applyDemoAction(state, "advance_event");
+  assert.equal(state.activeEvent?.nodeIndex, 0);
+  assert.equal(state.scene, "dormitory");
+
+  state = applyDemoAction(state, "event_choice:intro_where");
   assert.equal(state.activeEvent?.nodeIndex, 1);
+  assert.equal(state.scene, "dormitory");
+  assert.equal(state.activeEvent?.awaitingScene, "plaza");
+
+  state = applyDemoAction(state, "change_scene:plaza");
+  assert.equal(state.activeEvent?.nodeIndex, 2);
   assert.equal(state.scene, "plaza");
+  assert.equal(state.activeEvent?.awaitingScene, "hall");
+
+  state = applyDemoAction(state, "change_scene:hall");
+  assert.equal(state.activeEvent?.nodeIndex, 3);
+  assert.equal(state.scene, "hall");
+  assert.equal(state.activeEvent?.awaitingScene, null);
 
   state = applyDemoAction(state, "advance_event");
-  assert.equal(state.activeEvent?.nodeIndex, 2);
+  assert.equal(state.activeEvent?.nodeIndex, 4);
   assert.equal(state.scene, "hall");
 
   state = applyDemoAction(state, "advance_event");
-  assert.equal(state.activeEvent?.nodeIndex, 3);
+  assert.equal(state.activeEvent?.nodeIndex, 5);
   assert.equal(state.scene, "hall");
 
   state = applyDemoAction(state, "advance_event");
@@ -72,6 +88,16 @@ test("intro_lushi advances through the opening scene chain", () => {
   assert.equal(state.completedEvents.includes("intro_lushi"), true);
   assert.equal(state.expansion.story.completed.includes(1), true);
   assert.equal(state.flags.introLushiCompleted, true);
+});
+
+test("starter handnotes are placed in their intended scenes", () => {
+  const notesByNpc = new Map(
+    defaultDemoState.expansion.handnotes.entries.map((entry) => [entry.npcId, entry.scene]),
+  );
+
+  assert.equal(notesByNpc.get("lu-zhenren"), "hall");
+  assert.equal(notesByNpc.get("xiao-zhang"), "dormitory");
+  assert.equal(notesByNpc.get("xiaoxian"), "sister_room");
 });
 
 test("claimed handnotes survive a normalized expansion update", () => {

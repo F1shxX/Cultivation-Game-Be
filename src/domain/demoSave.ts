@@ -14,6 +14,8 @@ export type DemoScene =
 export type DemoEventId = "intro_lushi" | "mouse_cave_treasure" | "wish_eater_bridge";
 
 export type DemoEventChoiceAction =
+  | "event_choice:intro_ok"
+  | "event_choice:intro_where"
   | "event_choice:mouse_joke"
   | "event_choice:mouse_careful"
   | "event_choice:qingmu_trust"
@@ -26,6 +28,7 @@ export type DemoActiveEvent = {
   nodeIndex: number;
   selectedChoices: Record<string, string>;
   replay: boolean;
+  awaitingScene?: DemoScene | null;
   startedAt: {
     year: number;
     month: number;
@@ -79,6 +82,7 @@ export type DemoHandnoteReward =
 export type DemoHandnoteEntry = {
   id: string;
   npcId: DemoHandnoteNpcId;
+  scene: DemoScene;
   title: string;
   text: string;
   flavorOnly: boolean;
@@ -272,6 +276,8 @@ type DemoEventNode = {
   mode: DemoEventNodeMode;
   visualStage: DemoEventVisualStage;
   scene?: DemoScene;
+  continueLabel?: string;
+  continueScene?: DemoScene | null;
   choices?: DemoEventChoice[];
 };
 
@@ -307,44 +313,86 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
     category: "开局主线",
     location: "宿舍 → 广场 → 大厅",
     participants: ["主角", "小娴", "小张", "鹿真人"],
-    summary: "你被带回鹿石宗，先在宗门里认路，再从鹿真人手中接过入门功法。",
+    summary: "开场 CG 结束后，你在宿舍醒来，由小张小娴引导前往大厅见鹿真人。",
     rewardText: "鹿花诀·炼气篇、金芒诀·炼气篇、焰心诀·炼气篇",
     nodes: [
       {
         id: "wake-up",
         title: "宿舍醒来",
-        speaker: "小娴",
-        text: "醒了？别急着起身，你刚回宗门，先认认床和门。鹿真人说了，你的路和旁人不太一样，今天开始先把宗门转熟。",
+        speaker: "小张 / 小娴",
+        text: "小张：醒了醒了！师弟——你可算醒了。我就说嘛，看着壮实，死不了。\n\n小娴：感觉怎么样？不急，慢慢来。真人吩咐了，等你醒了带去大厅见他。",
+        mode: "choice",
+        visualStage: "intro_dormitory",
+        scene: "dormitory",
+        choices: [
+          {
+            action: "event_choice:intro_ok",
+            key: "ok",
+            label: "我没事。多谢....",
+            logTitle: "醒来回应",
+            logText: "小娴微笑着点头：那就好。走吧。",
+          },
+          {
+            action: "event_choice:intro_where",
+            key: "where",
+            label: "这里是……",
+            logTitle: "询问来处",
+            logText:
+              "小娴温和地解释：鹿石宗。你昏倒在山脚下，我和小张把你背回来的。不急——等见过真人，慢慢就熟了。",
+          },
+        ],
+      },
+      {
+        id: "dormitory-departure",
+        title: "宿舍门前",
+        speaker: "小张 / 小娴",
+        text: "小张：你不知道——那天在山脚下发现你的时候，你浑身是泥，就剩一只眼睛露在外面。我一看，还有气！赶紧叫师姐来帮忙。这就叫——\n\n小娴：你当时喊的是“师姐救我”。\n\n小张：——师姐！不是说好了不提这个吗！！\n\n小娴：走吧。别让真人等久了。",
         mode: "dialogue",
         visualStage: "intro_dormitory",
         scene: "dormitory",
+        continueLabel: "前往广场",
+        continueScene: "plaza",
       },
       {
         id: "plaza-walk",
         title: "广场认路",
-        speaker: "小张",
-        text: "跟紧点，别一会儿又走丢了。这里是广场，左边去炼器坊，右边去炼丹房，后山那边先别乱钻。你要真迷路了，就抬头找传送阵。",
+        speaker: "小张 / 小娴",
+        text: "小张：对了，正式介绍一下——在下张真人，鹿石宗大师兄。这是小娴，你大师姐。以后修炼上不懂的——问我。\n\n小娴：修仙界要结了金丹的修士才配称“真人”。他这个是自己封的——你叫他大师兄就好。\n\n小张：——师姐！我迟早是要结丹的，提前叫叫怎么了！！\n\n小娴：嗯。先走吧。\n\n玩家：多谢师兄师姐。",
         mode: "dialogue",
         visualStage: "intro_plaza",
         scene: "plaza",
+        continueLabel: "前往大厅",
+        continueScene: "hall",
       },
       {
         id: "hall-meeting",
         title: "大殿初见",
-        speaker: "鹿真人",
-        text: "身无灵根，却能化灵为己用。倒是少见。你先收下这三本入门功法，照着练。路要一步一步走，不必急着问天。",
+        speaker: "鹿真人 / 小张",
+        text: "鹿真人：来了。坐。\n\n鹿真人：你的灵根我探过了。五种俱全——金木水火土。灵根愈杂，修行愈缓。此乃常理，你当知晓。\n\n小张：五种那可是相当杂了——师弟你以后得用功。不过没事，大师兄盯着你。\n\n鹿真人：不过杂有杂的好处。这三本功法予你。",
         mode: "dialogue",
         visualStage: "intro_hall",
         scene: "hall",
+        continueLabel: "收下三本功法",
       },
       {
         id: "manual-reward",
         title: "入门功法",
-        speaker: "小娴",
-        text: "东西已经都给你整理好了。鹿花诀主修身骨，金芒诀适合破敌，焰心诀偏向爆发。收好，别再让小张说你是空手入门。",
+        speaker: "系统 / 鹿真人 / 小娴",
+        text: "系统：获得「鹿花诀·炼气篇」「金芒诀·炼气篇」「焰心诀·炼气篇」。\n\n玩家：多谢真人。\n\n鹿真人：好好修。\n\n鹿真人：鹿花诀是根基。无属性的——不挑人。先修它。\n\n鹿真人：这两本也可修。金芒诀锋锐，焰心诀爆烈。皆学了去，日后如何搭配——自行琢磨。\n\n小娴：师弟，真人的意思是鹿花诀先修扎实，打牢底子。另外两本可以一起修——多学几门，将来便能搭配组合。你灵根虽杂，却是什么都能学，或许反倒适合这般路子。",
         mode: "reward",
         visualStage: "intro_reward",
         scene: "hall",
+        continueLabel: "送别鹿真人",
+      },
+      {
+        id: "lushi-departure",
+        title: "真人离去",
+        speaker: "鹿真人 / 小张",
+        text: "鹿真人：明日我便出门了。修行之事——你师兄师姐俱在。\n\n鹿真人：来都来了。\n\n鹿真人：好好待着。\n\n鹿真人离去后，小张转向你：好了，师弟。真人走了，大师兄先带你四处转转，认认路。明天开始教你修炼——三本功法，够你忙一阵的。走走走。",
+        mode: "dialogue",
+        visualStage: "intro_hall",
+        scene: "hall",
+        continueLabel: "返回广场继续修行",
       },
     ],
   },
@@ -561,6 +609,8 @@ const eventStartActions = [
 ] as const;
 
 const eventChoiceActions = [
+  "event_choice:intro_ok",
+  "event_choice:intro_where",
   "event_choice:mouse_joke",
   "event_choice:mouse_careful",
   "event_choice:qingmu_trust",
@@ -675,6 +725,12 @@ const handnoteNpcNames: Record<DemoHandnoteNpcId, string> = {
   xiaoxian: "小娴",
 };
 
+const handnoteSceneByNpc: Record<DemoHandnoteNpcId, DemoScene> = {
+  "lu-zhenren": "hall",
+  "xiao-zhang": "dormitory",
+  xiaoxian: "sister_room",
+};
+
 const handnoteTemplates: Record<
   DemoHandnoteNpcId,
   Array<{
@@ -729,6 +785,7 @@ const handnoteTemplates: Record<
 };
 
 const handnoteNpcIds = ["lu-zhenren", "xiao-zhang", "xiaoxian"] as const;
+const demoScenes = Object.keys(sceneNames) as DemoScene[];
 
 function normalizeHandnoteDate(
   value: Partial<{ year: number; month: number }> | undefined,
@@ -777,6 +834,7 @@ function normalizeHandnoteEntry(entry: Partial<DemoHandnoteEntry> | undefined): 
   return {
     id: typeof entry.id === "string" && entry.id.trim() ? entry.id.trim().slice(0, 64) : `handnote-${entry.npcId}`,
     npcId: entry.npcId,
+    scene: isOneOf(entry.scene, demoScenes) ? entry.scene : handnoteSceneByNpc[entry.npcId],
     title:
       typeof entry.title === "string" && entry.title.trim()
         ? entry.title.trim().slice(0, 40)
@@ -824,6 +882,7 @@ function createHandnoteEntry(
   return {
     id: `${year}-${month}-${npcId}-${templateIndex}`,
     npcId,
+    scene: handnoteSceneByNpc[npcId],
     title: template.title,
     text: template.text,
     flavorOnly: template.flavorOnly,
@@ -1323,6 +1382,7 @@ function setEventNode(state: DemoSaveState, nodeIndex: number): DemoSaveState {
       activeEvent: {
         ...state.activeEvent,
         nodeIndex,
+        awaitingScene: node.continueScene ?? null,
       },
     },
     node.title,
@@ -1354,6 +1414,7 @@ function startEvent(state: DemoSaveState, eventId: DemoEventId): DemoSaveState {
         nodeIndex: 0,
         selectedChoices: {},
         replay,
+        awaitingScene: firstNode.continueScene ?? null,
         startedAt: {
           year: state.year,
           month: state.month,
@@ -1512,14 +1573,22 @@ function completeEvent(rawState: DemoSaveState): DemoSaveState {
 
 function advanceEvent(rawState: DemoSaveState): DemoSaveState {
   if (!rawState.activeEvent) {
-    return appendLog(rawState, "暂无事件", "当前没有正在进行的事件。可从事件测试按钮启动一组事件。");
+    return appendLog(rawState, "暂无事件", "当前没有正在进行的事件。可以从事件测试按钮启动一组事件。");
   }
 
   const definition = demoEventDefinitions[rawState.activeEvent.id];
   const currentNode = definition.nodes[rawState.activeEvent.nodeIndex];
 
   if (currentNode?.mode === "choice") {
-    return appendLog(rawState, "需要抉择", "当前事件节点需要先选择一个回应。");
+    return appendLog(rawState, "需要选择", "当前事件节点需要先选择一个回应。");
+  }
+
+  if (currentNode?.continueScene && rawState.scene !== currentNode.continueScene) {
+    return appendLog(
+      rawState,
+      "需要先前往场景",
+      `请先前往${sceneNames[currentNode.continueScene]}，再继续剧情。`,
+    );
   }
 
   const nextIndex = rawState.activeEvent.nodeIndex + 1;
@@ -1656,11 +1725,49 @@ export function applyExpansionUpdate(
 function changeScene(state: DemoSaveState, scene: DemoScene): DemoSaveState {
   if (state.activeEvent) {
     const definition = demoEventDefinitions[state.activeEvent.id];
-    return appendLog(
-      state,
-      "事件进行中",
-      `先完成「${definition.title}」，再返回鹿石宗其他区域。`,
-    );
+    const currentNode = definition.nodes[state.activeEvent.nodeIndex];
+    const expectedScene = state.activeEvent.awaitingScene ?? currentNode?.continueScene ?? null;
+
+    if (expectedScene === scene) {
+      const traveledState =
+        scene === state.scene
+          ? state
+          : appendLog(
+              {
+                ...state,
+                scene,
+                location: state.location === "battle" ? "battle" : "home",
+              },
+              `前往${sceneNames[scene]}`,
+              `你来到鹿石宗${sceneNames[scene]}。这里布置简约随性，却处处像有人刚刚用过。`,
+            );
+
+      const nextIndex = state.activeEvent.nodeIndex + 1;
+      if (nextIndex >= definition.nodes.length) {
+        return completeEvent(traveledState);
+      }
+
+      return setEventNode(
+        {
+          ...traveledState,
+          activeEvent: {
+            ...(traveledState.activeEvent ?? state.activeEvent),
+            awaitingScene: null,
+          } as DemoActiveEvent,
+        },
+        nextIndex,
+      );
+    }
+
+    if (expectedScene) {
+      return appendLog(
+        state,
+        "剧情进行中",
+        `当前剧情需要先前往${sceneNames[expectedScene]}，再继续推进。`,
+      );
+    }
+
+    return appendLog(state, "剧情进行中", "请先完成当前剧情节点，再继续推进。");
   }
 
   if (scene === state.scene) {
@@ -1670,7 +1777,7 @@ function changeScene(state: DemoSaveState, scene: DemoScene): DemoSaveState {
   if (state.scene !== "plaza" && scene !== "plaza") {
     return appendLog(
       state,
-      "需先返回广场",
+      "需要先返回广场",
       `你现在位于${sceneNames[state.scene]}。前往${sceneNames[scene]}前，必须先返回广场。`,
     );
   }
@@ -1784,7 +1891,8 @@ export function applyDemoAction(
     action === "advance_event" ||
     action === "battle_victory" ||
     action.startsWith("event_choice:") ||
-    action.startsWith("start_event:");
+    action.startsWith("start_event:") ||
+    action.startsWith("change_scene:");
 
   if (state.activeEvent && !eventAction) {
     const definition = demoEventDefinitions[state.activeEvent.id];
