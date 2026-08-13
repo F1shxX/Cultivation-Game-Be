@@ -56,30 +56,45 @@ test("intro_lushi advances through the opening scene chain", () => {
   assert.equal(state.activeEvent?.awaitingScene, null);
 
   state = applyDemoAction(state, "advance_event");
-  assert.equal(state.activeEvent?.nodeIndex, 0);
+  assert.equal(state.activeEvent?.nodeIndex, 1);
   assert.equal(state.scene, "dormitory");
 
-  state = applyDemoAction(state, "event_choice:intro_where");
-  assert.equal(state.activeEvent?.nodeIndex, 1);
+  state = applyDemoAction(state, "advance_event");
+  assert.equal(state.activeEvent?.nodeIndex, 2);
+  assert.equal(state.scene, "dormitory");
+  assert.equal(state.activeEvent?.awaitingScene, null);
+
+  state = applyDemoAction(state, "advance_event");
+  assert.equal(state.activeEvent?.nodeIndex, 3);
   assert.equal(state.scene, "dormitory");
   assert.equal(state.activeEvent?.awaitingScene, "plaza");
 
   state = applyDemoAction(state, "change_scene:plaza");
-  assert.equal(state.activeEvent?.nodeIndex, 2);
+  assert.equal(state.activeEvent?.nodeIndex, 4);
+  assert.equal(state.scene, "plaza");
+  assert.equal(state.activeEvent?.awaitingScene, null);
+
+  state = applyDemoAction(state, "advance_event");
+  assert.equal(state.activeEvent?.nodeIndex, 5);
+  assert.equal(state.scene, "plaza");
+  assert.equal(state.activeEvent?.awaitingScene, null);
+
+  state = applyDemoAction(state, "advance_event");
+  assert.equal(state.activeEvent?.nodeIndex, 6);
   assert.equal(state.scene, "plaza");
   assert.equal(state.activeEvent?.awaitingScene, "hall");
 
   state = applyDemoAction(state, "change_scene:hall");
-  assert.equal(state.activeEvent?.nodeIndex, 3);
+  assert.equal(state.activeEvent?.nodeIndex, 7);
   assert.equal(state.scene, "hall");
   assert.equal(state.activeEvent?.awaitingScene, null);
 
   state = applyDemoAction(state, "advance_event");
-  assert.equal(state.activeEvent?.nodeIndex, 4);
+  assert.equal(state.activeEvent?.nodeIndex, 8);
   assert.equal(state.scene, "hall");
 
   state = applyDemoAction(state, "advance_event");
-  assert.equal(state.activeEvent?.nodeIndex, 5);
+  assert.equal(state.activeEvent?.nodeIndex, 9);
   assert.equal(state.scene, "hall");
 
   state = applyDemoAction(state, "advance_event");
