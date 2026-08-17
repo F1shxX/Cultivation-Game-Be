@@ -1201,11 +1201,10 @@ function recordBattleResult(
 
   const title = result.victory ? "战斗胜利" : "战斗失利";
   const nodeTitle = currentNode ? `「${currentNode.title}」` : "外出战斗";
-  const rewardText = result.spiritStones > 0 ? `，掉落灵石${result.spiritStones}` : "";
   return appendLog(
     withStats,
     title,
-    `${nodeTitle}结算：击杀${result.kills}，用时${result.seconds}秒，剩余气血${result.hpPercent}%${rewardText}。`,
+    `${nodeTitle}结算：击杀${result.kills}，用时${result.seconds}秒，剩余气血${result.hpPercent}%。`,
   );
 }
 
@@ -1585,7 +1584,7 @@ function completeEvent(rawState: DemoSaveState): DemoSaveState {
     next,
     grantReward ? `完成：${definition.title}` : `复盘完成：${definition.title}`,
     grantReward
-      ? `事件结算：${definition.rewardText}`
+      ? "事件结算已完成，奖励已同步到背包、功法栏或关系记录。"
       : "本事件已完成过，本次复盘不重复发放奖励。",
   );
 }
@@ -1978,7 +1977,7 @@ export function applyDemoAction(
           3,
         ),
       );
-      return appendLog(next, "小娴开炉", "小娴一边哼歌一边看火，你得到一枚回气丹。");
+      return appendLog(next, "小娴开炉", "小娴一边哼歌一边看火，炉火收得很稳。");
     }
     case "plant": {
       const next = advanceMonth(
@@ -2031,7 +2030,7 @@ export function applyDemoAction(
           pills: state.resources.pills + 1,
         },
       });
-      return appendLog(next, "宿舍小憩", "你在简陋但干净的宿舍里睡了一觉，醒来时桌上多了一枚小娴留下的丹药。");
+      return appendLog(next, "宿舍小憩", "你在简陋但干净的宿舍里睡了一觉，醒来时桌上压着一张小娴留下的字条。");
     }
     case "talk_xiaoxian": {
       const next = addBond(
@@ -2069,7 +2068,7 @@ export function applyDemoAction(
           1,
         ),
       );
-      return appendLog(next, "广场洒扫", "你在广场石缝里捡到几枚灵石。小张说这是鹿真人布下的机缘，听起来很像他临时编的。");
+      return appendLog(next, "广场洒扫", "你把广场石缝清理了一遍。小张说这是鹿真人布下的机缘，听起来很像他临时编的。");
     }
     case "inspect_teleport": {
       return appendLog(
@@ -2114,7 +2113,7 @@ export function applyDemoAction(
           learnedArts: Array.from(new Set([...withBattleResult.cultivation.learnedArts, "碎石剑气"])),
         },
       });
-      return appendLog(next, "山鼠退散", "你以碎石剑气击退山鼠，带回一袋灵石和一卷残破功法。");
+      return appendLog(next, "山鼠退散", "你以碎石剑气击退山鼠，顺利带回战利品。");
     }
     default:
       return state;
