@@ -5,6 +5,7 @@ import {
   applyDemoAction,
   applyExpansionUpdate,
   defaultDemoState,
+  demoEventDefinitions,
   normalizeDemoState,
   type DemoSaveState,
 } from "./demoSave.js";
@@ -50,54 +51,53 @@ test("selecting the current scene does not add a duplicate travel log", () => {
 
 test("intro_lushi advances through the opening scene chain", () => {
   let state = applyDemoAction(defaultDemoState, "start_event:intro_lushi");
+  const activeNodeId = (value: DemoSaveState) =>
+    value.activeEvent
+      ? demoEventDefinitions[value.activeEvent.id].nodes[value.activeEvent.nodeIndex]?.id
+      : null;
 
   assert.equal(state.activeEvent?.id, "intro_lushi");
   assert.equal(state.scene, "dormitory");
   assert.equal(state.activeEvent?.awaitingScene, null);
+  assert.equal(activeNodeId(state), "wake-up");
 
   state = applyDemoAction(state, "advance_event");
-  assert.equal(state.activeEvent?.nodeIndex, 1);
   assert.equal(state.scene, "dormitory");
+  assert.equal(activeNodeId(state), "wake-up-choice");
 
-  state = applyDemoAction(state, "advance_event");
-  assert.equal(state.activeEvent?.nodeIndex, 2);
+  state = applyDemoAction(state, "event_choice:intro_where");
   assert.equal(state.scene, "dormitory");
-  assert.equal(state.activeEvent?.awaitingScene, null);
+  assert.equal(activeNodeId(state), "wake-up-joke");
+  assert.equal(state.activeEvent?.selectedChoices["wake-up-choice"], "where");
+  assert.equal(state.eventLog[0]?.title, "宿舍醒来");
+  assert.equal(state.eventLog[1]?.title, "醒来答话");
 
-  state = applyDemoAction(state, "advance_event");
-  assert.equal(state.activeEvent?.nodeIndex, 3);
-  assert.equal(state.scene, "dormitory");
-  assert.equal(state.activeEvent?.awaitingScene, "plaza");
+  while (state.activeEvent?.awaitingScene !== "plaza") {
+    state = applyDemoAction(state, "advance_event");
+  }
+  assert.equal(activeNodeId(state), "dormitory-departure");
 
   state = applyDemoAction(state, "change_scene:plaza");
-  assert.equal(state.activeEvent?.nodeIndex, 4);
   assert.equal(state.scene, "plaza");
-  assert.equal(state.activeEvent?.awaitingScene, null);
+  assert.equal(activeNodeId(state), "plaza-walk");
 
-  state = applyDemoAction(state, "advance_event");
-  assert.equal(state.activeEvent?.nodeIndex, 5);
-  assert.equal(state.scene, "plaza");
-  assert.equal(state.activeEvent?.awaitingScene, null);
-
-  state = applyDemoAction(state, "advance_event");
-  assert.equal(state.activeEvent?.nodeIndex, 6);
-  assert.equal(state.scene, "plaza");
-  assert.equal(state.activeEvent?.awaitingScene, "hall");
+  while (state.activeEvent?.awaitingScene !== "hall") {
+    state = applyDemoAction(state, "advance_event");
+  }
+  assert.equal(activeNodeId(state), "plaza-to-hall");
 
   state = applyDemoAction(state, "change_scene:hall");
-  assert.equal(state.activeEvent?.nodeIndex, 7);
   assert.equal(state.scene, "hall");
   assert.equal(state.activeEvent?.awaitingScene, null);
+  assert.equal(activeNodeId(state), "hall-greeting");
 
-  state = applyDemoAction(state, "advance_event");
-  assert.equal(state.activeEvent?.nodeIndex, 8);
-  assert.equal(state.scene, "hall");
+  let guard = 0;
+  while (state.activeEvent && guard < 24) {
+    state = applyDemoAction(state, "advance_event");
+    guard += 1;
+  }
 
-  state = applyDemoAction(state, "advance_event");
-  assert.equal(state.activeEvent?.nodeIndex, 9);
-  assert.equal(state.scene, "hall");
-
-  state = applyDemoAction(state, "advance_event");
+  assert.equal(guard < 24, true);
   assert.equal(state.activeEvent, null);
   assert.equal(state.scene, "plaza");
   assert.equal(state.completedEvents.includes("intro_lushi"), true);
