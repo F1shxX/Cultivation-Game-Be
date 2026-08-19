@@ -266,6 +266,7 @@ type DemoEventChoice = {
   label: string;
   logTitle: string;
   logText: string;
+  nextNodeId?: string;
 };
 
 type DemoEventNode = {
@@ -278,6 +279,7 @@ type DemoEventNode = {
   scene?: DemoScene;
   continueLabel?: string;
   continueScene?: DemoScene | null;
+  nextNodeId?: string;
   choices?: DemoEventChoice[];
 };
 
@@ -338,18 +340,42 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
           {
             action: "event_choice:intro_ok",
             key: "ok",
-            label: "我没事。多谢。",
-            logTitle: "醒来答话",
-            logText: "那就好。走吧。",
+            label: "我没事。多谢....",
+            logTitle: "玩家选择",
+            logText: "我没事。多谢....",
+            nextNodeId: "intro-ok-response",
           },
           {
             action: "event_choice:intro_where",
             key: "where",
             label: "这里是……",
-            logTitle: "醒来答话",
-            logText: "鹿石宗。你昏倒在山脚下，我和小张把你背回来的。不急——等见过真人，慢慢就熟了。",
+            logTitle: "玩家选择",
+            logText: "这里是……",
+            nextNodeId: "intro-where-response",
           },
         ],
+      },
+
+      {
+        id: "intro-ok-response",
+        title: "宿舍醒来",
+        speaker: "小娴",
+        text: "那就好。走吧。",
+        mode: "dialogue",
+        visualStage: "intro_dormitory",
+        scene: "dormitory",
+        nextNodeId: "wake-up-joke",
+      },
+
+      {
+        id: "intro-where-response",
+        title: "宿舍醒来",
+        speaker: "小娴",
+        text: "鹿石宗。你昏倒在山脚下，我和小张把你背回来的。不急——等见过真人，慢慢就熟了。",
+        mode: "dialogue",
+        visualStage: "intro_dormitory",
+        scene: "dormitory",
+        nextNodeId: "wake-up-joke",
       },
 
       {
@@ -425,30 +451,20 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
       },
 
       {
+        id: "plaza-xiaoxian-leave",
+        title: "广场认路",
+        speaker: "小娴",
+        text: "嗯。先走吧。",
+        mode: "dialogue",
+        visualStage: "intro_plaza",
+        scene: "plaza",
+      },
+
+      {
         id: "plaza-thanks",
         title: "广场认路",
         speaker: "主角",
         text: "多谢师兄师姐。",
-        mode: "dialogue",
-        visualStage: "intro_plaza",
-        scene: "plaza",
-      },
-
-      {
-        id: "plaza-zhang-reply",
-        title: "广场认路",
-        speaker: "小张",
-        text: "……师姐你这句就比刚才那句好多了。",
-        mode: "dialogue",
-        visualStage: "intro_plaza",
-        scene: "plaza",
-      },
-
-      {
-        id: "plaza-to-hall",
-        title: "广场认路",
-        speaker: "小娴",
-        text: "嗯。先走吧。",
         mode: "dialogue",
         visualStage: "intro_plaza",
         scene: "plaza",
@@ -490,7 +506,17 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
         id: "hall-reward",
         title: "入门功法",
         speaker: "鹿真人",
-        text: "不过杂有杂的好处。这三本功法予你。\n【系统：获得「鹿花诀·炼气篇」「金芒诀·炼气篇」「焰心诀·炼气篇」。】",
+        text: "不过杂有杂的好处。这三本功法予你。",
+        mode: "dialogue",
+        visualStage: "intro_reward",
+        scene: "hall",
+      },
+
+      {
+        id: "manual-gained",
+        title: "系统提示",
+        speaker: "系统",
+        text: "获得「鹿花诀·炼气篇」「金芒诀·炼气篇」「焰心诀·炼气篇」。",
         mode: "reward",
         visualStage: "intro_reward",
         scene: "hall",
@@ -1583,6 +1609,12 @@ function setEventNode(state: DemoSaveState, nodeIndex: number): DemoSaveState {
   );
 }
 
+function getEventNodeIndex(definition: DemoEventDefinition, nodeId: string | undefined, fallbackIndex: number) {
+  if (!nodeId) return fallbackIndex;
+  const nextIndex = definition.nodes.findIndex((node) => node.id === nodeId);
+  return nextIndex >= 0 ? nextIndex : fallbackIndex;
+}
+
 function startEvent(state: DemoSaveState, eventId: DemoEventId): DemoSaveState {
   if (state.activeEvent) {
     const activeDefinition = demoEventDefinitions[state.activeEvent.id];
@@ -1784,7 +1816,11 @@ function advanceEvent(rawState: DemoSaveState): DemoSaveState {
     );
   }
 
-  const nextIndex = rawState.activeEvent.nodeIndex + 1;
+  const nextIndex = getEventNodeIndex(
+    definition,
+    currentNode?.nextNodeId,
+    rawState.activeEvent.nodeIndex + 1,
+  );
   if (nextIndex >= definition.nodes.length) {
     return completeEvent(rawState);
   }
@@ -1820,7 +1856,11 @@ function chooseEventOption(rawState: DemoSaveState, action: DemoEventChoiceActio
     choice.logText,
   );
 
-  const nextIndex = rawState.activeEvent.nodeIndex + 1;
+  const nextIndex = getEventNodeIndex(
+    definition,
+    choice.nextNodeId,
+    rawState.activeEvent.nodeIndex + 1,
+  );
   if (nextIndex >= definition.nodes.length) {
     return completeEvent(withChoice);
   }

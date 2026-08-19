@@ -67,10 +67,13 @@ test("intro_lushi advances through the opening scene chain", () => {
 
   state = applyDemoAction(state, "event_choice:intro_where");
   assert.equal(state.scene, "dormitory");
-  assert.equal(activeNodeId(state), "wake-up-joke");
+  assert.equal(activeNodeId(state), "intro-where-response");
   assert.equal(state.activeEvent?.selectedChoices["wake-up-choice"], "where");
   assert.equal(state.eventLog[0]?.title, "宿舍醒来");
-  assert.equal(state.eventLog[1]?.title, "醒来答话");
+  assert.equal(state.eventLog[1]?.title, "玩家选择");
+
+  state = applyDemoAction(state, "advance_event");
+  assert.equal(activeNodeId(state), "wake-up-joke");
 
   while (state.activeEvent?.awaitingScene !== "plaza") {
     state = applyDemoAction(state, "advance_event");
@@ -84,7 +87,7 @@ test("intro_lushi advances through the opening scene chain", () => {
   while (state.activeEvent?.awaitingScene !== "hall") {
     state = applyDemoAction(state, "advance_event");
   }
-  assert.equal(activeNodeId(state), "plaza-to-hall");
+  assert.equal(activeNodeId(state), "plaza-thanks");
 
   state = applyDemoAction(state, "change_scene:hall");
   assert.equal(state.scene, "hall");
@@ -103,6 +106,20 @@ test("intro_lushi advances through the opening scene chain", () => {
   assert.equal(state.completedEvents.includes("intro_lushi"), true);
   assert.equal(state.expansion.story.completed.includes(1), true);
   assert.equal(state.flags.introLushiCompleted, true);
+});
+
+test("intro_lushi choice branches show the matching Xiaoxian response", () => {
+  let okState = applyDemoAction(defaultDemoState, "start_event:intro_lushi");
+  okState = applyDemoAction(okState, "advance_event");
+  okState = applyDemoAction(okState, "event_choice:intro_ok");
+  assert.equal(demoEventDefinitions[okState.activeEvent!.id].nodes[okState.activeEvent!.nodeIndex]?.id, "intro-ok-response");
+  assert.match(demoEventDefinitions[okState.activeEvent!.id].nodes[okState.activeEvent!.nodeIndex]?.text ?? "", /那就好/);
+
+  let whereState = applyDemoAction(defaultDemoState, "start_event:intro_lushi");
+  whereState = applyDemoAction(whereState, "advance_event");
+  whereState = applyDemoAction(whereState, "event_choice:intro_where");
+  assert.equal(demoEventDefinitions[whereState.activeEvent!.id].nodes[whereState.activeEvent!.nodeIndex]?.id, "intro-where-response");
+  assert.match(demoEventDefinitions[whereState.activeEvent!.id].nodes[whereState.activeEvent!.nodeIndex]?.text ?? "", /鹿石宗/);
 });
 
 test("starter handnotes are placed in their intended scenes", () => {
