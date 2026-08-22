@@ -114,6 +114,8 @@ test("intro_lushi choice branches show the matching Xiaoxian response", () => {
   okState = applyDemoAction(okState, "event_choice:intro_ok");
   assert.equal(demoEventDefinitions[okState.activeEvent!.id].nodes[okState.activeEvent!.nodeIndex]?.id, "intro-ok-response");
   assert.match(demoEventDefinitions[okState.activeEvent!.id].nodes[okState.activeEvent!.nodeIndex]?.text ?? "", /那就好/);
+  okState = applyDemoAction(okState, "advance_event");
+  assert.equal(demoEventDefinitions[okState.activeEvent!.id].nodes[okState.activeEvent!.nodeIndex]?.id, "dormitory-departure");
 
   let whereState = applyDemoAction(defaultDemoState, "start_event:intro_lushi");
   whereState = applyDemoAction(whereState, "advance_event");

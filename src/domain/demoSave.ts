@@ -364,7 +364,7 @@ export const demoEventDefinitions: Record<DemoEventId, DemoEventDefinition> = {
         mode: "dialogue",
         visualStage: "intro_dormitory",
         scene: "dormitory",
-        nextNodeId: "wake-up-joke",
+        nextNodeId: "dormitory-departure",
       },
 
       {
